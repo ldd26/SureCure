@@ -56,7 +56,7 @@ Fakes are made to look right, so looking closely doesn't help much. What *does* 
 | 🏷️ **Barcode first** | A listed barcode identifies the product straight away |
 | 🧠 **On-device recognition** | A small vision model recognizes 20 common Philippine OTC products, with no internet needed |
 | 🙅 **Knows what it doesn't know** | Unfamiliar packs are flagged instead of guessed |
-| 🔎 **Code check** | The barcode, lot, registration number and dates are read on the phone, confirmed by the user, and checked against FDA-based rules |
+| 🔎 **Code check** | The barcode, lot, registration number and dates are typed next to the code-panel photo, confirmed by the user, and checked against FDA-based rules |
 | 🚦 **Clear verdict** | 🔴 red, 🟡 amber or 🟢 green, always with the reasons |
 | 📍 **Next step** | Amber and red results link to FDA verification and reporting, and point to nearby established drugstores |
 | 🗒️ **Scan history** | Every verdict is saved on the phone, grouped by month |
@@ -87,7 +87,7 @@ flowchart LR
     G -- yes, confident --> D
     L --> D
     T --> D
-    D --> E[Codes read on device,<br/>user confirms]
+    D --> E[User enters codes]
     E --> R{Rules vs FDA tables}
     R --> V1[🔴 Red]
     R --> V2[🟡 Amber]

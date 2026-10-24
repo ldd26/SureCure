@@ -107,7 +107,7 @@ Python: `pytest -q rules/tests`.
 - **Still missing data:** advisory number and URL per lot (reasons say "an FDA counterfeit
   advisory"), EAN-13 barcodes, registration validity dates.
 - **App models.** The app's `ScanSafety { SAFE, UNSAFE }` and "Marked safe/unsafe" text need three
-  levels and the wording above. Not changed here; to be agreed with the app dev.
+  levels and the wording above (fixed: the dashboard now shows 'No match with FDA records' / 'Flagged: check with FDA'). Not changed here; to be agreed with the app dev.
 
 ## Barcode table (2026-10-24)
 

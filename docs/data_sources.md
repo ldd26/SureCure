@@ -14,3 +14,19 @@
 - D1 real photos were all taken on one day; each product was shot in its own time window, so lighting alone predicts the product above chance (the notebook reports a lighting-only baseline).
 - D4 covers five chains only: Southstar has no coordinates, and TGP's locator is capped at 300 stores.
 - No public dataset geolocates counterfeit cases; map models measure exposure, not incidence.
+
+## Drugstore and boundary references (APA 7th)
+
+Faeldon, J. (n.d.). *philippines-json-maps* [Data set]. GitHub. Retrieved October 24, 2026, from https://github.com/faeldon/philippines-json-maps
+
+Generika Drugstore. (n.d.). *Store locator*. Retrieved October 24, 2026, from https://www.generika.com.ph/
+
+Mercury Drug Corporation. (n.d.). *Store locator*. Retrieved October 24, 2026, from https://www.mercurydrug.com/
+
+Philippine Statistics Authority. (2023). *Philippine Standard Geographic Code (PSGC)* [Data set]. https://psa.gov.ph/classification/psgc
+
+Southstar Drug. (n.d.). *Store locator*. Retrieved October 24, 2026, from https://www.southstardrug.com.ph/
+
+The Generics Pharmacy. (n.d.). *Store locator*. Retrieved October 24, 2026, from https://www.tgp.com.ph/
+
+Watsons Philippines. (n.d.). *Store locator*. Retrieved October 24, 2026, from https://www.watsons.com.ph/

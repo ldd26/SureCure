@@ -104,7 +104,7 @@ How to run the golden test:
 5. `java.time` is used behind `@RequiresApi(O)` while `minSdk = 24`; API 24 to 25 would crash
    without core library desugaring.
 6. Verdicts are two levels (`ScanSafety { SAFE, UNSAFE }`, "Marked safe/unsafe"); the
-   product needs red / amber / green with "No match with FDA counterfeit records" wording.
+   product needs red / amber / green with "No match with FDA counterfeit records" wording (fixed: the dashboard now shows 'No match with FDA records' / 'Flagged: check with FDA').
    To be proposed separately; not changed here.
 
 ## Open questions

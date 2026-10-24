@@ -1,0 +1,10 @@
+torch
+torchvision
+scikit-learn
+scipy
+pandas
+numpy
+pillow
+onnxruntime
+matplotlib
+pytest
