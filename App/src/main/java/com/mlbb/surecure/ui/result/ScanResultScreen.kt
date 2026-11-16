@@ -27,6 +27,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -50,6 +51,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.mlbb.surecure.ml.ClassifierResult
+import com.mlbb.surecure.ocr.CodePanelReader
+import com.mlbb.surecure.ocr.CodePanelReading
+import com.mlbb.surecure.ocr.CodePanelText
 import com.mlbb.surecure.rules.FdaTables
 import com.mlbb.surecure.rules.Verdict
 import com.mlbb.surecure.rules.VerdictLevel
@@ -79,10 +83,18 @@ private sealed interface Phase {
     data class Nearby(val result: Result) : Phase
 }
 
+/** On-device reading of the code-panel photo; only ever pre-fills fields for the user to confirm. */
+private sealed interface OcrState {
+    data object Reading : OcrState
+    data class Done(val reading: CodePanelReading) : OcrState
+    data object Failed : OcrState
+}
+
 /**
  * Scan result flow after photo review (Figure 1):
- * Stage 1 product identification + manual selection, Stage 2 code entry (typed for now; ML Kit
- * reading will fill the same fields), Stage 3 verification rules and verdict.
+ * Stage 1 product identification + manual selection, Stage 2 code entry (pre-filled from the
+ * code-panel photo by on-device OCR, confirmed or typed by the user), Stage 3 verification rules
+ * and verdict.
  */
 @Composable
 fun ScanResultScreen(
@@ -103,6 +115,11 @@ fun ScanResultScreen(
     var modelLabels by remember { mutableStateOf<List<String>>(emptyList()) }
     var notice by remember { mutableStateOf<String?>(null) }
     var entry by remember { mutableStateOf(ScanFlow.CodeEntry()) }
+    var ocr by remember { mutableStateOf<OcrState>(OcrState.Reading) }
+    // The reading is applied once, when the code step first opens; later visits keep the user's edits.
+    var ocrApplied by remember { mutableStateOf(false) }
+    var fromPhoto by remember { mutableStateOf<Set<String>>(emptySet()) }
+    var codesConfirmed by remember { mutableStateOf(false) }
 
     // Stage 1 by photo: the photo model, or manual selection if it can't decide.
     fun identifyByPhoto() {
@@ -143,6 +160,27 @@ fun ScanResultScreen(
             }
         } else {
             identifyByPhoto()
+        }
+    }
+
+    // Read the code panel while the product is identified, so it is usually ready at the code step.
+    LaunchedEffect(codePanelPhoto) {
+        ocr = try {
+            OcrState.Done(CodePanelReader.read(context, codePanelPhoto))
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            OcrState.Failed
+        }
+    }
+    val atCodeStep = phase is Phase.Codes
+    LaunchedEffect(atCodeStep, ocr) {
+        val o = ocr
+        if (atCodeStep && !ocrApplied && o is OcrState.Done) {
+            val p = ScanFlow.prefill(entry, o.reading)
+            entry = p.entry
+            fromPhoto = p.fromPhoto
+            ocrApplied = true
         }
     }
 
@@ -203,7 +241,14 @@ fun ScanResultScreen(
                 product = p.product,
                 codePanelPhoto = codePanelPhoto,
                 entry = entry,
-                onEntryChange = { entry = it },
+                ocr = ocr,
+                fromPhoto = fromPhoto,
+                confirmed = codesConfirmed,
+                onConfirmedChange = { codesConfirmed = it },
+                onEntryChange = { e, key ->
+                    entry = e
+                    fromPhoto = fromPhoto - key
+                },
                 onChangeProduct = { phase = Phase.Product(ScanFlow.ProductStep.ChooseFromList) },
                 onCheck = { scan ->
                     val t = tables
@@ -340,7 +385,13 @@ private fun CodeStage(
     product: String?,
     codePanelPhoto: Uri,
     entry: ScanFlow.CodeEntry,
-    onEntryChange: (ScanFlow.CodeEntry) -> Unit,
+    ocr: OcrState,
+    /** Fields still holding the photo's reading (not edited by the user since). */
+    fromPhoto: Set<String>,
+    confirmed: Boolean,
+    onConfirmedChange: (Boolean) -> Unit,
+    /** The new entry and the key of the field the user edited. */
+    onEntryChange: (ScanFlow.CodeEntry, String) -> Unit,
     onChangeProduct: () -> Unit,
     onCheck: (com.mlbb.surecure.rules.ScanInput) -> Unit,
 ) {
@@ -352,52 +403,74 @@ private fun CodeStage(
     )
     TextButton(onClick = onChangeProduct) { Text("Change product") }
 
-    Text("Type the codes printed on the pack", style = MaterialTheme.typography.titleMedium)
+    Text(
+        if (fromPhoto.isNotEmpty()) "Check the codes read from the photo" else "Type the codes printed on the pack",
+        style = MaterialTheme.typography.titleMedium
+    )
     Photo(codePanelPhoto, "Code panel photo")
+    when (ocr) {
+        OcrState.Reading -> Row(verticalAlignment = Alignment.CenterVertically) {
+            CircularProgressIndicator(modifier = Modifier.size(18.dp))
+            Spacer(Modifier.padding(start = 8.dp))
+            Text("Reading the code panel...", style = MaterialTheme.typography.bodySmall)
+        }
+        OcrState.Failed -> Text(
+            "The photo couldn't be read. Type the codes printed on the pack.",
+            style = MaterialTheme.typography.bodySmall
+        )
+        is OcrState.Done -> Unit
+    }
     Text(
         "Leave a field blank if it isn't printed or you can't read it.",
         style = MaterialTheme.typography.bodySmall
     )
-    OutlinedTextField(
-        value = entry.barcode,
-        onValueChange = { onEntryChange(entry.copy(barcode = it)) },
-        label = { Text("Barcode number (13 digits under the bars)") },
-        singleLine = true,
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-        modifier = Modifier.fillMaxWidth()
-    )
-    OutlinedTextField(
-        value = entry.lot,
-        onValueChange = { onEntryChange(entry.copy(lot = it)) },
-        label = { Text("Lot / batch number") },
-        singleLine = true,
-        modifier = Modifier.fillMaxWidth()
-    )
-    OutlinedTextField(
-        value = entry.regNo,
-        onValueChange = { onEntryChange(entry.copy(regNo = it)) },
-        label = { Text("FDA registration number (e.g. DR-XY12345)") },
-        singleLine = true,
-        modifier = Modifier.fillMaxWidth()
-    )
-    OutlinedTextField(
-        value = entry.expiry,
-        onValueChange = { onEntryChange(entry.copy(expiry = it)); errors = errors - "expiry" },
-        label = { Text("Expiry date (e.g. MAR 2028)") },
-        singleLine = true,
-        isError = "expiry" in errors,
-        supportingText = errors["expiry"]?.let { msg -> { Text(msg) } },
-        modifier = Modifier.fillMaxWidth()
-    )
-    OutlinedTextField(
-        value = entry.manufactured,
-        onValueChange = { onEntryChange(entry.copy(manufactured = it)); errors = errors - "manufactured" },
-        label = { Text("Manufacture date (optional)") },
-        singleLine = true,
-        isError = "manufactured" in errors,
-        supportingText = errors["manufactured"]?.let { msg -> { Text(msg) } },
-        modifier = Modifier.fillMaxWidth()
-    )
+
+    /** Error first, then where the value came from, then "not found" once the photo has been read. */
+    fun hint(key: String, value: String): String? = errors[key]
+        ?: when {
+            key in fromPhoto -> "Read from the photo. Check it matches the pack." +
+                if (key == ScanFlow.FIELD_LOT && CodePanelText.lotHasLookalikes(value)) {
+                    " Look closely at O and 0, I and 1, S and 5."
+                } else ""
+            ocr is OcrState.Done && value.isBlank() -> "Not found in the photo. Type it if it's printed."
+            else -> null
+        }
+
+    @Composable
+    fun field(key: String, value: String, label: String, keyboard: KeyboardType, update: (String) -> ScanFlow.CodeEntry) {
+        OutlinedTextField(
+            value = value,
+            onValueChange = { onEntryChange(update(it), key); errors = errors - key },
+            label = { Text(label) },
+            singleLine = true,
+            isError = key in errors,
+            supportingText = hint(key, value)?.let { msg -> { Text(msg) } },
+            keyboardOptions = KeyboardOptions(keyboardType = keyboard),
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+
+    field(ScanFlow.FIELD_BARCODE, entry.barcode, "Barcode number (13 digits under the bars)", KeyboardType.Number) {
+        entry.copy(barcode = it)
+    }
+    field(ScanFlow.FIELD_LOT, entry.lot, "Lot / batch number", KeyboardType.Text) { entry.copy(lot = it) }
+    field(ScanFlow.FIELD_REG_NO, entry.regNo, "FDA registration number (e.g. DR-XY12345)", KeyboardType.Text) {
+        entry.copy(regNo = it)
+    }
+    field(ScanFlow.FIELD_EXPIRY, entry.expiry, "Expiry date (e.g. MAR 2028)", KeyboardType.Text) {
+        entry.copy(expiry = it)
+    }
+    field(ScanFlow.FIELD_MANUFACTURED, entry.manufactured, "Manufacture date (optional)", KeyboardType.Text) {
+        entry.copy(manufactured = it)
+    }
+
+    // Codes read from the photo are suggestions: the user confirms them before the check runs.
+    if (fromPhoto.isNotEmpty()) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Checkbox(checked = confirmed, onCheckedChange = onConfirmedChange)
+            Text("I've checked these codes against the pack", style = MaterialTheme.typography.bodyMedium)
+        }
+    }
     Button(
         onClick = {
             when (val parsed = ScanFlow.parse(product, entry)) {
@@ -405,6 +478,7 @@ private fun CodeStage(
                 is ScanFlow.Parsed.Errors -> errors = parsed.fields
             }
         },
+        enabled = ScanFlow.canCheck(fromPhoto, confirmed),
         modifier = Modifier.fillMaxWidth(),
         colors = ButtonDefaults.buttonColors(containerColor = SureCureGreen)
     ) { Text("Check against FDA records") }

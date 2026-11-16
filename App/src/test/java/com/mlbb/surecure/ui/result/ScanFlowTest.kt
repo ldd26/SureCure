@@ -3,11 +3,14 @@ package com.mlbb.surecure.ui.result
 import com.mlbb.surecure.ml.ClassifierResult
 import com.mlbb.surecure.ml.ProductScore
 import com.mlbb.surecure.ml.Recognition
+import com.mlbb.surecure.ocr.CodePanelReading
+import com.mlbb.surecure.ocr.CodePanelText
 import com.mlbb.surecure.rules.FdaTables
 import com.mlbb.surecure.rules.PackDate
 import com.mlbb.surecure.rules.VerdictLevel
 import com.mlbb.surecure.rules.verify
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -175,6 +178,47 @@ class ScanFlowTest {
         assertEquals("10 m", ScanFlow.formatDistance(0.001))
         assertEquals("1.6 km", ScanFlow.formatDistance(1.573))
         assertEquals("12 km", ScanFlow.formatDistance(12.34))
+    }
+
+    @Test
+    fun photoReadingFillsOnlyBlankFields() {
+        val typed = ScanFlow.CodeEntry(lot = "U066338")
+        val reading = CodePanelReading(
+            barcode = "4807788526762", lot = "U066300", regNo = "DR-XY37402", expiry = "MAR 2028",
+        )
+        val p = ScanFlow.prefill(typed, reading)
+        // The typed lot stays; the manufacture date wasn't found, so it stays blank.
+        assertEquals(
+            ScanFlow.CodeEntry(
+                barcode = "4807788526762", lot = "U066338", regNo = "DR-XY37402", expiry = "MAR 2028",
+            ),
+            p.entry,
+        )
+        assertEquals(
+            setOf(ScanFlow.FIELD_BARCODE, ScanFlow.FIELD_REG_NO, ScanFlow.FIELD_EXPIRY),
+            p.fromPhoto,
+        )
+        // Nothing found: nothing changes and nothing needs confirming.
+        assertEquals(ScanFlow.Prefilled(typed, emptySet()), ScanFlow.prefill(typed, CodePanelReading()))
+    }
+
+    @Test
+    fun photoReadingsMustBeConfirmedBeforeChecking() {
+        assertTrue(ScanFlow.canCheck(emptySet(), userConfirmed = false))
+        assertFalse(ScanFlow.canCheck(setOf(ScanFlow.FIELD_LOT), userConfirmed = false))
+        assertTrue(ScanFlow.canCheck(setOf(ScanFlow.FIELD_LOT), userConfirmed = true))
+    }
+
+    @Test
+    fun confirmedPhotoReadingBuildsTheSameScanInputAsTyping() {
+        val reading = CodePanelText.read(
+            listOf("Reg. No.: DR-XY37402", "LOT NO.: U066300", "EXP. MAR 2O28", "4 807788 526762")
+        )
+        val prefilled = ScanFlow.prefill(ScanFlow.CodeEntry(), reading).entry
+        val typed = ScanFlow.CodeEntry(
+            barcode = "4 807788 526762", lot = "U066300", regNo = "DR-XY37402", expiry = "MAR 2028",
+        )
+        assertEquals(scanFor("Bioflu", typed), scanFor("Bioflu", prefilled))
     }
 
     private fun scanFor(product: String, entry: ScanFlow.CodeEntry) =
