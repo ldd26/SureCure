@@ -24,4 +24,5 @@ dependencyResolutionManagement {
 
 rootProject.name = "SureCure"
 include(":app")
- 
+// The module folder is "App"; without this the build fails on case-sensitive file systems (Linux, CI).
+project(":app").projectDir = file("App")

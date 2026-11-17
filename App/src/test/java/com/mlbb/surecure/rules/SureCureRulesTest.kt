@@ -87,18 +87,34 @@ class SureCureRulesTest {
     }
 
     @Test
-    fun oneCharacterLotVariantIsRed() {
-        val v = verify(genuine(lot = "23651563"), tables(), today)
-        assertTrue(v.level == RED && "one character" in v.reasons[0])
+    fun lookalikeLotVariantIsAmber() {
+        // I for 1: a misread of the listed lot, so the user is asked to check it again.
+        val v = verify(genuine(lot = "2365I568"), tables(), today)
+        assertTrue(v.level == AMBER && "one look-alike character" in v.reasons[0])
+        assertFalse(v.counterfeitLotMatch)
     }
 
     @Test
-    fun counterfeitLotOfOtherProductDoesNotFire() {
+    fun neighbouringLotIsNotFlagged() {
+        // Lots are sequential: a genuine neighbour of a listed lot must not be called counterfeit.
+        assertEquals(GREEN, verify(genuine(lot = "23651563"), tables(), today).level)
+        assertEquals(GREEN, verify(genuine(lot = "2365156"), tables(), today).level)
+    }
+
+    @Test
+    fun counterfeitLotOfOtherProductIsAmber() {
+        // The lot is listed, but for Biogesic: the confirmed product may be wrong.
         val v = verify(
             genuine(stage1Product = "Tempra", barcode = tempraEan, regNo = "DR-TEST-0002", lot = "23651568"),
             tables(), today
         )
-        assertEquals(GREEN, v.level)
+        assertTrue(v.level == AMBER && "listed as counterfeit for Biogesic" in v.reasons[0])
+    }
+
+    @Test
+    fun listedLotWithUnidentifiedProductNamesTheProduct() {
+        val v = verify(ScanInput(stage1Product = null, lot = "23651568"), tables(), today)
+        assertTrue(v.level == AMBER && v.reasons.any { "listed as counterfeit for Biogesic" in it })
     }
 
     @Test

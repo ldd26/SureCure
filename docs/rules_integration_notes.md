@@ -28,7 +28,7 @@ from Python's `Verdict.message` (which had longer red and amber text), as decide
 | `.../rules/PackDate.kt` | Date type for the engine, plus a parser for printed pack dates |
 | `.../rules/Csv.kt` | Small CSV reader (quoted fields, CRLF) |
 | `.../rules/FdaTablesLoader.kt` | Reads the tables from assets once and caches them |
-| `App/src/test/java/com/mlbb/surecure/rules/` | `SureCureRulesTest` (the 21 Python tests), `RulesRealDataTest`, `RulesParityTest`, `PackDateTest` |
+| `App/src/test/java/com/mlbb/surecure/rules/` | `SureCureRulesTest` (the 23 Python tests), `RulesRealDataTest`, `RulesParityTest`, `PackDateTest` |
 | `App/src/test/resources/rules/` | Python verdicts for the parity test |
 | `rules/surecure_rules.py`, `rules/tests/test_rules.py` | Python reference engine and its tests (the specification) |
 | `rules/tests/make_parity_cases.py` | Writes the parity cases from the Python engine |
@@ -82,7 +82,7 @@ val verdict = verify(
 Run: `./gradlew :app:testDebugUnitTest --tests 'com.mlbb.surecure.rules.*'` (JVM, no emulator).
 Python: `pytest -q rules/tests`.
 
-- `SureCureRulesTest`: 21/21 pass (the same 21 tests as `test_rules.py`, which also passes 21/21).
+- `SureCureRulesTest`: 23/23 pass (the same 23 tests as `test_rules.py`, which also passes 23/23).
 - `RulesRealDataTest`: 10/10 pass. Includes the six cases from the brief: Biogesic + `23651568`
   red, Biogesic + `2365I568` red, Biogesic + `DR-153` + unlisted lot green, Bioflu + `U066300`
   red, Flanax + `261` not red, Biogesic + `DR-XY34482` red.

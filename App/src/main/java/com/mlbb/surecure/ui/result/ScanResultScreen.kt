@@ -2,8 +2,6 @@ package com.mlbb.surecure.ui.result
 
 import android.net.Uri
 import android.content.Intent
-import android.os.Build
-import androidx.annotation.RequiresApi
 import android.content.Context
 import com.mlbb.surecure.data.repository.ScanHistoryRepository
 import com.mlbb.surecure.ui.dashboard.ScanHistoryEntry
@@ -255,11 +253,9 @@ fun ScanResultScreen(
                     if (t != null) {
                         val verdict = verify(scan, t)
                         phase = Phase.Result(verdict, p.product)
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                            // NonCancellable: leaving the screen right away must not drop the save.
-                            saveJob = scope.launch {
-                                withContext(NonCancellable) { saveToHistory(context, historyId, verdict) }
-                            }
+                        // NonCancellable: leaving the screen right away must not drop the save.
+                        saveJob = scope.launch {
+                            withContext(NonCancellable) { saveToHistory(context, historyId, verdict) }
                         }
                     }
                     else notice = "The FDA tables couldn't be loaded."
@@ -565,7 +561,6 @@ private fun Photo(uri: Uri, description: String) {
  * Saves the verdict to the dashboard's scan history. The history only has SAFE / UNSAFE, so green is
  * SAFE and red or amber are UNSAFE; the real level, product and reasons go into scanDetails.
  */
-@RequiresApi(Build.VERSION_CODES.O)
 internal suspend fun saveToHistory(context: Context, id: String, verdict: Verdict) {
     val details = buildString {
         append(ScanFlow.headline(verdict)).append(" (").append(verdict.level.name.lowercase()).append(")")

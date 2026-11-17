@@ -69,7 +69,7 @@ Fakes are made to look right, so looking closely doesn't help much. What *does* 
 | FDA Philippines registrations | Registration number check | 66 numbers for our brands |
 | FDA counterfeit drug advisories, March 2022 to present | Counterfeit lot check | 327 product and lot pairs, 122 for our products |
 | Online pharmacy listings and Open Food Facts | Barcode lookup | 18 check-digit-verified EAN-13 codes |
-| Chain drugstore store locators | "Find a nearby drugstore" | 4,252 branches, checked against 2023 PSGC boundaries (Faeldon, n.d.; Philippine Statistics Authority [PSA], 2023) |
+| Chain drugstore store locators | "Find a nearby drugstore" | 4,252 branches collected and checked against 2023 PSGC boundaries; the app ships the 3,651 with exact coordinates (Faeldon, n.d.; Philippine Statistics Authority [PSA], 2023) |
 | Medical Pills dataset (Jocher & Rizwan, 2024) | Testing the out-of-scope guard on unfamiliar pills | 115 images |
 
 Scraped files are kept untouched in `data/*/raw/`. Every cleaned table and app asset is rebuilt by a script in `scripts/`, and each data folder has a short README listing what was fixed and what's still missing.
@@ -104,7 +104,7 @@ flowchart LR
 - **No leakage.** Real photos are split by burst (shots taken seconds apart), never by frame.
 - **Out-of-scope guard.** An energy score (Liu et al., 2020) with a conformal threshold (Bates et al., 2023), set so about 5% of supported photos get wrongly rejected. A rejected photo goes to the product list, not a dead end.
 - **Calibrated confidence.** Temperature scaling sets how sure the model has to be before showing a single answer; below that, it shows its top 3.
-- **Rules.** Red if the lot matches an FDA counterfeit advisory for that product (exact, or one character off for lots of 6+ characters), or if the codes belong to a different product. Amber if something can't be verified. Green otherwise. Every product variant (Forte, No-Drowse, ...) maps to one label, so a genuine variant is never flagged just for being a variant.
+- **Rules.** Red if the lot exactly matches an FDA counterfeit advisory for that product, or if the codes belong to a different product. Amber if something can't be verified, if the lot is one look-alike character (O/0, I/1, S/5, ...) from a listed lot of 6+ characters, or if the lot is listed for a different product. Green otherwise. Every product variant (Forte, No-Drowse, ...) maps to one label, so a genuine variant is never flagged just for being a variant.
 - **One source of truth.** `meta.json` carries every number the app needs (temperature, thresholds, padding colour). The app reads it instead of hard-coding values.
 
 </details>

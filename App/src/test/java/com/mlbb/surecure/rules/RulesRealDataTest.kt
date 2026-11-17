@@ -49,10 +49,10 @@ class RulesRealDataTest {
     }
 
     @Test
-    fun biogesicLotWithOcrSlipIsRed() {
+    fun biogesicLotWithOcrSlipIsAmber() {
         val v = check(ScanInput("Biogesic", lot = "2365I568"))
-        assertEquals(RED, v.level)
-        assertTrue(v.reasons[0].contains("one character from counterfeit lot 23651568"))
+        assertEquals(AMBER, v.level)
+        assertTrue(v.reasons.any { it.contains("differs from counterfeit lot 23651568 by one look-alike character") })
     }
 
     @Test

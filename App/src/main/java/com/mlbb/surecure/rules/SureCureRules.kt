@@ -14,7 +14,7 @@ import java.util.Locale
  * Pure Kotlin (no Android imports) so it runs in JVM unit tests.
  */
 
-/** Lots shorter than this only match exactly; a one-character slip on "015" or "260" would match far too many packs. */
+/** Lots shorter than this only match exactly; a look-alike slip on "015" or "260" would match far too many packs. */
 const val MIN_FUZZY_LOT_LEN = 6
 
 /** Verdict levels, least to most severe. [headline] is the wording the app shows. */
@@ -51,6 +51,16 @@ fun editDistance(a: String, b: String): Int {
         prev = cur
     }
     return prev[b.length]
+}
+
+/** Characters that are misread or mistyped for each other on a printed lot. */
+private val LOOKALIKE_PAIRS = setOf("0O", "1I", "1L", "5S", "8B", "2Z", "6G").map { it.toSet() }.toSet()
+
+/** True if [a] and [b] have the same length and differ in exactly one look-alike character. */
+fun lookalikeSlip(a: String, b: String): Boolean {
+    if (a.length != b.length) return false
+    val diffs = a.indices.filter { a[it] != b[it] }
+    return diffs.size == 1 && setOf(a[diffs[0]], b[diffs[0]]) in LOOKALIKE_PAIRS
 }
 
 // --------------------------------------------------------------------------- data
@@ -136,7 +146,7 @@ data class Verdict(
     /** Every rule that fired, most severe first. */
     val reasons: List<String>,
     val productChecked: String?,
-    /** True if the lot matched (or was one character from) a listed counterfeit lot. Kotlin-only addition. */
+    /** True if the lot exactly matched a counterfeit lot listed for this product (the red lot rule). Kotlin-only addition. */
     val counterfeitLotMatch: Boolean = false,
 ) {
     val message: String get() = level.headline
@@ -181,21 +191,34 @@ fun verify(scan: ScanInput, tables: FdaTables, today: PackDate = PackDate.today(
         hit(VerdictLevel.RED, "Barcode belongs to $bcProduct, not ${scan.stage1Product}.")
     }
 
-    // Red: lot listed in an FDA counterfeit advisory for this product (exact or 1 edit away)
+    // Lot listed in an FDA counterfeit advisory.
+    //   Red: exact match for this product.
+    //   Amber: one look-alike character (O/0, I/1, ...) from a listed lot of this product. Lots are
+    //          sequential, so any other one-character difference is usually a genuine neighbour.
+    //   Amber: exact match for a different product (the confirmed product may be wrong).
     var lotMatch = false
-    if (scan.lot.given() && product.given()) {
+    if (scan.lot.given()) {
         val lot = normalizeLot(scan.lot)
         for (c in tables.counterfeitLots) {
-            if (c.product != product) continue
             val listed = normalizeLot(c.lot)
             val src = if (c.advisory.isNotEmpty()) "FDA Advisory ${c.advisory}" else "an FDA counterfeit advisory"
-            val d = editDistance(lot, listed)
-            if (d == 0) {
-                hit(VerdictLevel.RED, "Lot ${scan.lot} is listed as counterfeit in $src.")
-                lotMatch = true
-            } else if (d == 1 && minOf(lot.length, listed.length) >= MIN_FUZZY_LOT_LEN) {
-                hit(VerdictLevel.RED, "Lot ${scan.lot} is one character from counterfeit lot ${c.lot} ($src).")
-                lotMatch = true
+            if (product.given() && c.product == product) {
+                if (lot == listed) {
+                    hit(VerdictLevel.RED, "Lot ${scan.lot} is listed as counterfeit in $src.")
+                    lotMatch = true
+                } else if (minOf(lot.length, listed.length) >= MIN_FUZZY_LOT_LEN && lookalikeSlip(lot, listed)) {
+                    hit(
+                        VerdictLevel.AMBER,
+                        "Lot ${scan.lot} differs from counterfeit lot ${c.lot} by one look-alike " +
+                            "character ($src). Check the lot number again."
+                    )
+                }
+            } else if (lot.isNotEmpty() && lot == listed) {
+                hit(
+                    VerdictLevel.AMBER,
+                    "Lot ${scan.lot} is listed as counterfeit for ${c.product} in $src. " +
+                        "Check that the product is right."
+                )
             }
         }
     }

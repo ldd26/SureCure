@@ -73,15 +73,28 @@ def test_lot_printed_with_separators_still_matches(tables):
     assert verify(genuine(lot="2365-1568"), tables, TODAY).level == RED
 
 
-def test_one_character_lot_variant_is_red(tables):
-    v = verify(genuine(lot="23651563"), tables, TODAY)
-    assert v.level == RED and "one character" in v.reasons[0]
+def test_lookalike_lot_variant_is_amber(tables):
+    # I for 1: a misread of the listed lot, so the user is asked to check it again.
+    v = verify(genuine(lot="2365I568"), tables, TODAY)
+    assert v.level == AMBER and "one look-alike character" in v.reasons[0]
 
 
-def test_counterfeit_lot_of_other_product_does_not_fire(tables):
+def test_neighbouring_lot_is_not_flagged(tables):
+    # Lots are sequential: a genuine neighbour of a listed lot must not be called counterfeit.
+    assert verify(genuine(lot="23651563"), tables, TODAY).level == GREEN
+    assert verify(genuine(lot="2365156"), tables, TODAY).level == GREEN
+
+
+def test_counterfeit_lot_of_other_product_is_amber(tables):
+    # The lot is listed, but for Biogesic: the confirmed product may be wrong.
     v = verify(genuine(stage1_product="Tempra", barcode=TEMPRA_EAN, reg_no="DR-TEST-0002", lot="23651568"),
                tables, TODAY)
-    assert v.level == GREEN
+    assert v.level == AMBER and "listed as counterfeit for Biogesic" in v.reasons[0]
+
+
+def test_listed_lot_with_unidentified_product_names_the_product(tables):
+    v = verify(ScanInput(stage1_product=None, lot="23651568"), tables, TODAY)
+    assert v.level == AMBER and any("listed as counterfeit for Biogesic" in r for r in v.reasons)
 
 
 def test_registration_of_other_product_is_red(tables):

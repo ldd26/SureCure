@@ -18,7 +18,7 @@ from typing import Optional
 
 RED, AMBER, GREEN = "red", "amber", "green"
 _RANK = {GREEN: 0, AMBER: 1, RED: 2}
-# Lots shorter than this only match exactly. A one-character slip on "015" or "260" would match far too many packs.
+# Lots shorter than this only match exactly. A look-alike slip on "015" or "260" would match far too many packs.
 MIN_FUZZY_LOT_LEN = 6
 
 
@@ -46,6 +46,18 @@ def edit_distance(a: str, b: str) -> int:
             cur.append(min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (ca != cb)))
         prev = cur
     return prev[-1]
+
+
+# Characters that are misread or mistyped for each other on a printed lot.
+LOOKALIKE_PAIRS = frozenset(frozenset(p) for p in ("0O", "1I", "1L", "5S", "8B", "2Z", "6G"))
+
+
+def lookalike_slip(a: str, b: str) -> bool:
+    """True if `a` and `b` have the same length and differ in exactly one look-alike character."""
+    if len(a) != len(b):
+        return False
+    diffs = [(x, y) for x, y in zip(a, b) if x != y]
+    return len(diffs) == 1 and frozenset(diffs[0]) in LOOKALIKE_PAIRS
 
 
 # --------------------------------------------------------------------------- data
@@ -148,19 +160,25 @@ def verify(scan: ScanInput, tables: FdaTables, today: Optional[date] = None) -> 
     elif scan.stage1_product and bc_product and bc_product != scan.stage1_product:
         hit(RED, f"Barcode belongs to {bc_product}, not {scan.stage1_product}.")
 
-    # Red: lot listed in an FDA counterfeit advisory for this product (exact or 1 edit away)
-    if scan.lot and product:
+    # Lot listed in an FDA counterfeit advisory.
+    #   Red: exact match for this product.
+    #   Amber: one look-alike character (O/0, I/1, ...) from a listed lot of this product. Lots are
+    #          sequential, so any other one-character difference is usually a genuine neighbour.
+    #   Amber: exact match for a different product (the confirmed product may be wrong).
+    if scan.lot:
         lot = normalize_lot(scan.lot)
         for c in tables.counterfeit_lots:
-            if c.product != product:
-                continue
             listed = normalize_lot(c.lot)
             src = f"FDA Advisory {c.advisory}" if c.advisory else "an FDA counterfeit advisory"
-            d = edit_distance(lot, listed)
-            if d == 0:
-                hit(RED, f"Lot {scan.lot} is listed as counterfeit in {src}.")
-            elif d == 1 and min(len(lot), len(listed)) >= MIN_FUZZY_LOT_LEN:
-                hit(RED, f"Lot {scan.lot} is one character from counterfeit lot {c.lot} ({src}).")
+            if product and c.product == product:
+                if lot == listed:
+                    hit(RED, f"Lot {scan.lot} is listed as counterfeit in {src}.")
+                elif min(len(lot), len(listed)) >= MIN_FUZZY_LOT_LEN and lookalike_slip(lot, listed):
+                    hit(AMBER, f"Lot {scan.lot} differs from counterfeit lot {c.lot} by one look-alike "
+                               f"character ({src}). Check the lot number again.")
+            elif lot and lot == listed:
+                hit(AMBER, f"Lot {scan.lot} is listed as counterfeit for {c.product} in {src}. "
+                           f"Check that the product is right.")
 
     # Amber: missing or unknown codes
     if not scan.reg_no:

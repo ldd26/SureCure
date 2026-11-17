@@ -1,8 +1,6 @@
 package com.mlbb.surecure.ui.dashboard
 
-import android.os.Build
 import android.widget.Toast
-import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
@@ -24,7 +22,6 @@ import com.mlbb.surecure.data.repository.ScanHistoryRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
-@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun DashboardRoute(
     onCameraClick: (hasBarcode: Boolean) -> Unit

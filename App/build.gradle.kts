@@ -30,6 +30,8 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
+        // java.time (scan history, dashboard) on Android 7.0 and 7.1: minSdk is 24, java.time is API 26.
+        isCoreLibraryDesugaringEnabled = true
     }
     buildFeatures {
         compose = true
@@ -47,6 +49,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.onnxruntime.android)
     implementation(libs.mlkit.text.recognition)
+    coreLibraryDesugaring(libs.desugar.jdk.libs)
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
