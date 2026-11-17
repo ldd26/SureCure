@@ -53,6 +53,7 @@ import com.mlbb.surecure.ocr.CodePanelReader
 import com.mlbb.surecure.ocr.CodePanelReading
 import com.mlbb.surecure.ocr.CodePanelText
 import com.mlbb.surecure.rules.FdaTables
+import com.mlbb.surecure.rules.PackDate
 import com.mlbb.surecure.rules.Verdict
 import com.mlbb.surecure.rules.VerdictLevel
 import com.mlbb.surecure.rules.verify
@@ -77,7 +78,7 @@ private sealed interface Phase {
     data class Barcode(val error: String?) : Phase
     data class Product(val step: ScanFlow.ProductStep, val fromBarcode: Boolean = false) : Phase
     data class Codes(val product: String?) : Phase
-    data class Result(val verdict: Verdict, val product: String?) : Phase
+    data class Result(val verdict: Verdict, val product: String?, val expiry: ScanFlow.ExpiryStatus? = null) : Phase
     data class Nearby(val result: Result) : Phase
 }
 
@@ -260,7 +261,9 @@ fun ScanResultScreen(
                     val t = tables
                     if (t != null) {
                         val verdict = verify(scan, t)
-                        phase = Phase.Result(verdict, p.product)
+                        phase = Phase.Result(
+                            verdict, p.product, ScanFlow.expiryStatus(scan.expDate, PackDate.today())
+                        )
                         // NonCancellable: leaving the screen right away must not drop the save.
                         saveJob = scope.launch {
                             withContext(NonCancellable) { saveToHistory(context, historyId, verdict) }
@@ -272,6 +275,7 @@ fun ScanResultScreen(
 
             is Phase.Result -> VerdictStage(
                 verdict = p.verdict,
+                expiry = p.expiry,
                 onEditCodes = { phase = Phase.Codes(p.product) },
                 onFindDrugstore = if (ScanFlow.offersNearbyDrugstores(p.verdict)) {
                     { phase = Phase.Nearby(p) }
@@ -468,6 +472,18 @@ private fun CodeStage(
     field(ScanFlow.FIELD_EXPIRY, entry.expiry, "Expiry date (e.g. MAR 2028)", KeyboardType.Text) {
         entry.copy(expiry = it)
     }
+    // Tell the user at once when the pack is expired or about to expire, before the full check.
+    ScanFlow.expiryStatus(entry.expiry, PackDate.today())
+        ?.takeIf { it !is ScanFlow.ExpiryStatus.Valid }
+        ?.let { status ->
+            val expired = status is ScanFlow.ExpiryStatus.Expired
+            Text(
+                (if (expired) "Expired. " else "") + ScanFlow.expiryNote(status),
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                color = if (expired) SureCureRed else SureCureAmber
+            )
+        }
     field(ScanFlow.FIELD_MANUFACTURED, entry.manufactured, "Manufacture date (optional)", KeyboardType.Text) {
         entry.copy(manufactured = it)
     }
@@ -497,14 +513,20 @@ private fun CodeStage(
 @Composable
 private fun VerdictStage(
     verdict: Verdict,
+    expiry: ScanFlow.ExpiryStatus?,
     onEditCodes: () -> Unit,
     onFindDrugstore: (() -> Unit)?,
     onDone: () -> Unit,
 ) {
-    val (color, background) = when (verdict.level) {
-        VerdictLevel.RED -> SureCureRed to RedBackground
-        VerdictLevel.AMBER -> SureCureAmber to AmberBackground
-        VerdictLevel.GREEN -> SureCureGreen to GreenBackground
+    val expired = expiry is ScanFlow.ExpiryStatus.Expired
+    val (color, background) = when {
+        // Expired is amber in the rules; shown in red here because the advice is "do not take it".
+        verdict.level == VerdictLevel.RED || expired -> SureCureRed to RedBackground
+        else -> when (verdict.level) {
+            VerdictLevel.RED -> SureCureRed to RedBackground
+            VerdictLevel.AMBER -> SureCureAmber to AmberBackground
+            VerdictLevel.GREEN -> SureCureGreen to GreenBackground
+        }
     }
     Column(
         modifier = Modifier
@@ -515,11 +537,20 @@ private fun VerdictStage(
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Text(
-            ScanFlow.headline(verdict),
+            ScanFlow.headline(verdict, expiry),
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
             color = color
         )
+        // The expiry is stated up front, not only in the reasons below.
+        if (expiry != null && expiry !is ScanFlow.ExpiryStatus.Valid) {
+            Text(
+                ScanFlow.expiryNote(expiry),
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = if (expired) SureCureRed else SureCureAmber
+            )
+        }
         Text(
             "Checked as: " + (verdict.productChecked?.let { ScanFlow.displayName(it) } ?: "unknown product"),
             style = MaterialTheme.typography.bodyMedium
