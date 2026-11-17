@@ -36,6 +36,18 @@ android {
     buildFeatures {
         compose = true
     }
+    // One APK per CPU type instead of one carrying all of them: ONNX Runtime and ML Kit ship about
+    // 31 to 53 MB of native libraries per ABI, and a phone uses one. arm64-v8a covers nearly all
+    // current phones, armeabi-v7a older and Android Go ones, x86_64 the emulator; 32-bit x86 is left
+    // out. App bundles (.aab) ignore this and split per device on Google Play.
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("arm64-v8a", "armeabi-v7a", "x86_64")
+            isUniversalApk = false
+        }
+    }
 }
 
 dependencies {

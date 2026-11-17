@@ -32,12 +32,13 @@ object CodePanelText {
 
     fun read(lines: List<String>): CodePanelReading {
         val clean = lines.map { it.trim() }.filter { it.isNotEmpty() }
+        val values = labelledValues(clean)
         return CodePanelReading(
             barcode = barcode(clean),
-            lot = lot(clean),
+            lot = lot(values[Field.LOT].orEmpty()),
             regNo = regNo(clean),
-            expiry = date(clean, EXPIRY_LABEL, endOfMonth = true),
-            manufactured = date(clean, MFG_LABEL, endOfMonth = false),
+            expiry = date(values[Field.EXPIRY].orEmpty(), endOfMonth = true),
+            manufactured = date(values[Field.MFG].orEmpty(), endOfMonth = false),
         )
     }
 
@@ -75,7 +76,9 @@ object CodePanelText {
     private fun barcode(lines: List<String>): String? {
         // Lines made only of digit groups, outside labelled lines (lots and dates are digits too).
         val digitLines = lines.map { line ->
-            val t = tokens(line)
+            // Stray marks printed or read beside the digits (">", "*", "-") are dropped.
+            val t = tokens(line).map { tok -> tok.trim { !it.isLetterOrDigit() && it !in DIGIT_LOOKALIKES } }
+                .filter { it.isNotEmpty() }
             if (!hasLabel(line) && t.isNotEmpty() && t.all(::digitLike)) t.map(::fixDigits) else null
         }
         val found = linkedSetOf<String>()
@@ -116,6 +119,9 @@ object CodePanelText {
             """\s*[-.:]?\s*([0-9OISBZ]{2,13})(?![A-Z0-9])"""
     )
 
+    private val AMBIGUOUS_REG_PREFIXES = setOf("DR-", "FR-")
+    private val REG_LABEL = Regex("""(?<![A-Z0-9])REG(?:ISTRATION)?\b""")
+
     /**
      * "DR-XY 45182", "Reg. No. DRP-13914", "DR-XYI2345" -> "DR-XY45182", "DRP-13914", "DR-XY12345".
      * Written the way the FDA table stores it, because the rules engine looks it up exactly.
@@ -123,43 +129,28 @@ object CodePanelText {
     private fun regNo(lines: List<String>): String? {
         val found = linkedSetOf<String>()
         for (line in lines) {
-            for (m in REG.findAll(line.uppercase(Locale.ROOT))) {
+            val upper = line.uppercase(Locale.ROOT)
+            for (m in REG.findAll(upper)) {
                 val index = (0 until REG_PREFIXES.size).first { m.groups[it + 2] != null }
-                val digits = fixDigits(m.groupValues[REG_PREFIXES.size + 2])
-                if (digits.count { it.isDigit() } < 2 || !digits.all { it.isDigit() }) continue
-                found += REG_PREFIXES[index].second + digits
+                val raw = m.groupValues[REG_PREFIXES.size + 2]
+                // Mostly real digits, so words such as "BOSS" or "ISIS" are never turned into numbers.
+                if (!digitLike(raw)) continue
+                val prefix = REG_PREFIXES[index].second
+                // "DR" and "FR" alone are also ordinary text ("Dr. ...", "DR 50 mg"): they need the
+                // printed hyphen ("DR-4184") or a registration label on the line.
+                if (prefix in AMBIGUOUS_REG_PREFIXES && '-' !in m.value && !REG_LABEL.containsMatchIn(upper)) continue
+                found += prefix + fixDigits(raw)
             }
         }
         return found.singleOrNull()
     }
 
-    // ------------------------------------------------------------------ lot
+    // ------------------------------------------------------------------ labels and their values
 
+    // Labels allow common misreads: "L0T", "N0." (zero for O).
     private val LOT_LABEL = Regex(
-        """(?<![A-Z0-9])(?:LOT\s*(?:NUMBER|NO\.?|#)?|BATCH\s*(?:NUMBER|NO\.?|#)?|B\s*\.?\s*N\.?|BN)\s*[.:#]*\s*"""
+        """(?<![A-Z0-9])(?:L[O0]T\s*(?:NUMBER|N[O0]\.?|#)?|BATCH\s*(?:NUMBER|N[O0]\.?|#)?|B\s*\.?\s*N\.?|BN)\s*[.:#]*\s*"""
     )
-    private val LOT_VALUE = Regex("""^[A-Z0-9][A-Z0-9\-/]{2,19}$""")
-
-    /** The code after a LOT / BATCH / B.N. label, on the same line or the next. Kept as read. */
-    private fun lot(lines: List<String>): String? {
-        for ((i, raw) in lines.withIndex()) {
-            val line = raw.uppercase(Locale.ROOT)
-            for (m in LOT_LABEL.findAll(line)) {
-                val rest = line.substring(m.range.last + 1).trim()
-                val sameLine = tokens(rest).firstOrNull()
-                val candidate = if (sameLine != null) sameLine
-                else lines.getOrNull(i + 1)?.let { tokens(it.uppercase(Locale.ROOT)).firstOrNull() }
-                val value = candidate?.trimEnd('.', ',', ';', ':')
-                if (value != null && LOT_VALUE.matches(value) && value.any { it.isDigit() } && !hasLabel(value)) {
-                    return value
-                }
-            }
-        }
-        return null
-    }
-
-    // ------------------------------------------------------------------ dates
-
     private val EXPIRY_LABEL = Regex(
         """(?<![A-Z0-9])(?:EXP(?:IRY|IRATION)?\.?(?:\s*DATE)?|USE\s*BY)\s*[.:]*\s*"""
     )
@@ -167,39 +158,169 @@ object CodePanelText {
         """(?<![A-Z0-9])(?:MFG\.?(?:\s*DATE)?|MFD\.?|MANUFACTURED(?:\s*ON)?|MANUFACTURING\s*DATE|DATE\s*OF\s*MANUFACTURE)\s*[.:]*\s*"""
     )
     private val ANY_LABEL = Regex(
-        listOf(EXPIRY_LABEL, MFG_LABEL, LOT_LABEL).joinToString("|") { "(?:${it.pattern})" } +
-            """|(?<![A-Z0-9])REG(?:ISTRATION)?\b"""
+        listOf(EXPIRY_LABEL, MFG_LABEL, LOT_LABEL, REG_LABEL).joinToString("|") { "(?:${it.pattern})" }
     )
 
+    private enum class Field { LOT, EXPIRY, MFG, REG }
+
+    /** The registration label with its "No." ("Reg. No.:"), so a stacked label takes its own value line. */
+    private val REG_FIELD_LABEL = Regex(
+        """(?<![A-Z0-9])REG(?:ISTRATION)?\.?\s*(?:NUMBER|N[O0]\.?|#)?\s*[.:#]*\s*"""
+    )
+
+    private val FIELD_LABELS = listOf(
+        Field.LOT to LOT_LABEL, Field.EXPIRY to EXPIRY_LABEL, Field.MFG to MFG_LABEL, Field.REG to REG_FIELD_LABEL,
+    )
+
+    private class LabelHit(val field: Field, val start: Int, val end: Int)
+
+    /** Labels on a line, left to right, without overlaps. */
+    private fun labelHits(line: String): List<LabelHit> {
+        val all = FIELD_LABELS
+            .flatMap { (field, re) -> re.findAll(line).map { LabelHit(field, it.range.first, it.range.last + 1) } }
+            .sortedWith(compareBy<LabelHit>({ it.start }, { -it.end }))
+        val out = mutableListOf<LabelHit>()
+        for (h in all) if (out.isEmpty() || h.start >= out.last().end) out += h
+        return out
+    }
+
+    /** Text between labels that joins them into one combined label: "LOT NO./EXP. DATE:". */
+    private fun isJoiner(text: String): Boolean = text.trim().trim('/', '&', ',', '.', ':', '|').isBlank()
+
+    private val COMBINED_VALUE_SPLIT = Regex("""\s+/\s+|\s*\|\s*|\s*;\s*""")
+
     /**
-     * The date after [label], cleaned ("EXP. MAR 2O28" -> "MAR 2028", "EXP 0S/2O28" -> "05/2028",
-     * "EXP 03 2028" -> "03/2028") and kept only if PackDate.parsePrinted reads it. A date it rejects
-     * on purpose, such as the ambiguous "03/15/2028", is left for the user to type.
+     * The text printed for each labelled field, in reading order. Handles:
+     * - label and value on one line: "LOT NO.: U066300  EXP: MAR 2028";
+     * - labels stacked above their values (one or several): "EXP. DATE" / "LOT NO." / "MAR 2028" / "U066300";
+     * - combined labels: "Lot No./Exp. Date: 23651568 / MAR 2028".
      */
-    private fun date(lines: List<String>, label: Regex, endOfMonth: Boolean): String? {
-        for ((i, raw) in lines.withIndex()) {
+    private fun labelledValues(lines: List<String>): Map<Field, List<String>> {
+        val values = mutableMapOf<Field, MutableList<String>>()
+        fun add(field: Field, text: String) {
+            if (text.isNotBlank()) values.getOrPut(field) { mutableListOf() } += text.trim()
+        }
+        // Labels printed without a value, waiting for the next unlabelled lines, in order.
+        val pending = ArrayDeque<Field>()
+        for (raw in lines) {
             val line = raw.uppercase(Locale.ROOT)
-            val m = label.find(line) ?: continue
-            var rest = line.substring(m.range.last + 1)
-            // Stop at the next label: "EXP 03/2028 MFG 03/2025" on one line.
-            ANY_LABEL.find(rest)?.let { rest = rest.substring(0, it.range.first) }
-            if (rest.isBlank()) rest = lines.getOrNull(i + 1)?.uppercase(Locale.ROOT) ?: ""
-            val parts = tokens(rest).map(::cleanDateToken)
-            for (k in minOf(parts.size, 4) downTo 1) {
-                // Don't cut a date short: "03 15 2028" must not become "03 15".
-                val next = parts.getOrNull(k)
-                if (next != null && next.first().isDigit()) continue
-                val candidate = numericMonthYear(parts.take(k).joinToString(" "))
-                if (PackDate.parsePrinted(candidate, endOfMonth) != null) return candidate
+            val hits = labelHits(line)
+            if (hits.isEmpty()) {
+                pending.removeFirstOrNull()?.let { add(it, line) }
+                continue
             }
+            val texts = hits.mapIndexed { j, h -> line.substring(h.end, hits.getOrNull(j + 1)?.start ?: line.length) }
+            var group = mutableListOf<Field>()
+            for ((j, h) in hits.withIndex()) {
+                group += h.field
+                val text = texts[j]
+                val last = j == hits.lastIndex
+                if (!last && isJoiner(text)) continue
+                when {
+                    text.isBlank() || isJoiner(text) -> pending.addAll(group)
+                    group.size == 1 -> add(group[0], text)
+                    else -> {
+                        val parts = text.trim().split(COMBINED_VALUE_SPLIT)
+                        if (parts.size == group.size) {
+                            group.zip(parts).forEach { (f, v) -> add(f, v) }
+                        } else if (group.size == 2) {
+                            // "LOT/EXP: 23651568 MAR 2028": the first word is the first field's value.
+                            val t = tokens(text)
+                            add(group[0], t.first())
+                            add(group[1], t.drop(1).joinToString(" "))
+                        }
+                    }
+                }
+                group = mutableListOf()
+            }
+        }
+        return values
+    }
+
+    // ------------------------------------------------------------------ lot
+
+    private val LOT_VALUE = Regex("""^[A-Z0-9][A-Z0-9\-/]{2,19}$""")
+
+    /** The code printed after a LOT / BATCH / B.N. label. Kept as read; two different lots suggest neither. */
+    private fun lot(texts: List<String>): String? {
+        val found = linkedSetOf<String>()
+        for (text in texts) {
+            val value = tokens(text).firstOrNull()?.trim('.', ',', ';', ':') ?: continue
+            if (LOT_VALUE.matches(value) && value.any { it.isDigit() } && !hasLabel(value)) found += value
+        }
+        return found.singleOrNull()
+    }
+
+    // ------------------------------------------------------------------ dates
+
+    private val MONTHS = listOf("JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC")
+
+    /** Digits OCR reads in place of letters, for month names only ("0CT" -> "OCT", "AU6" -> "AUG"). */
+    private val LETTER_LOOKALIKES = mapOf('0' to 'O', '1' to 'I', '5' to 'S', '8' to 'B', '2' to 'Z', '6' to 'G')
+
+    /** A month name, allowing digit misreads; null if [text] isn't one. */
+    private fun monthName(text: String): String? {
+        val fixed = text.map { LETTER_LOOKALIKES[it] ?: it }.joinToString("")
+        return fixed.takeIf { it.length >= 3 && it.all(Char::isLetter) && it.take(3) in MONTHS }
+    }
+
+    /**
+     * The expiry or manufacture date: every labelled value is cleaned and kept only if
+     * PackDate.parsePrinted reads it. If the panel shows two different dates for the same label,
+     * neither is suggested. A date parsePrinted rejects on purpose (the ambiguous "03/15/2028") is
+     * left for the user to type.
+     */
+    private fun date(texts: List<String>, endOfMonth: Boolean): String? {
+        val found = texts.mapNotNull { dateIn(it, endOfMonth) }
+        return found.firstOrNull()?.takeIf { first -> found.all { it.second == first.second } }?.first
+    }
+
+    /** "MAR 2O28 SRP 25.00" -> "MAR 2028" with its parsed date, or null. */
+    private fun dateIn(text: String, endOfMonth: Boolean): Pair<String, PackDate>? {
+        val parts = tokens(text)
+            .map { it.trim('.', ',', ';', ':') }
+            .flatMap { tokens(expandCompactDate(it)) }
+            .map(::cleanDateToken)
+            .filter { it.isNotEmpty() }
+        for (k in minOf(parts.size, 4) downTo 1) {
+            // Don't cut a date short: "03 15 2028" must not become "03 15".
+            val next = parts.getOrNull(k)
+            if (next != null && next.first().isDigit()) continue
+            val candidate = numericMonthYear(parts.take(k).joinToString(" "))
+            PackDate.parsePrinted(candidate, endOfMonth)?.let { return candidate to it }
         }
         return null
     }
 
-    /** Fix look-alikes in the number parts of a date token ("0S/2O28" -> "05/2028"); keep month names. */
+    /** "15MAR2O28" -> "15 MAR 2028", "0CT2027" -> "OCT 2027", "032028" -> "03/2028"; anything else unchanged. */
+    private fun expandCompactDate(token: String): String {
+        if (token.any { !it.isLetterOrDigit() }) return token
+        Regex("""^(0[1-9]|1[0-2])(20\d{2})$""").matchEntire(token)?.let {
+            return "${it.groupValues[1]}/${it.groupValues[2]}"
+        }
+        for (dayLen in 0..2) {
+            if (token.length < dayLen + 5) break
+            val day = token.substring(0, dayLen)
+            val month = monthName(token.substring(dayLen, dayLen + 3)) ?: continue
+            val year = token.substring(dayLen + 3)
+            if ((year.length != 2 && year.length != 4) || !digitLike(year)) continue
+            if (day.isNotEmpty() && !digitLike(day)) continue
+            return listOf(fixDigits(day), month, fixDigits(year)).filter { it.isNotEmpty() }.joinToString(" ")
+        }
+        return token
+    }
+
+    /**
+     * Fix look-alikes in a date token: digits in the number parts ("0S/2O28" -> "05/2028") and
+     * letters in month names ("0CT" -> "OCT").
+     */
     private fun cleanDateToken(token: String): String =
-        token.trimEnd('.', ',', ';', ':').split(Regex("(?<=[./-])|(?=[./-])")).joinToString("") { part ->
-            if (digitLike(part)) fixDigits(part) else part
+        token.split(Regex("(?<=[./-])|(?=[./-])")).joinToString("") { part ->
+            when {
+                digitLike(part) -> fixDigits(part)
+                part.any(Char::isDigit) -> monthName(part) ?: part
+                else -> part
+            }
         }
 
     /** "03 2028" -> "03/2028", which parsePrinted reads as a month and year. */

@@ -117,6 +117,8 @@ fun ScanResultScreen(
     // The reading is applied once, when the code step first opens; later visits keep the user's edits.
     var ocrApplied by remember { mutableStateOf(false) }
     var fromPhoto by remember { mutableStateOf<Set<String>>(emptySet()) }
+    // Every field the photo filled, kept after the user edits one, so a cleared field isn't "not found".
+    var foundInPhoto by remember { mutableStateOf<Set<String>>(emptySet()) }
     var codesConfirmed by remember { mutableStateOf(false) }
 
     // Stage 1 by photo: the photo model, or manual selection if it can't decide.
@@ -169,6 +171,9 @@ fun ScanResultScreen(
             throw e
         } catch (e: Exception) {
             OcrState.Failed
+        } catch (e: OutOfMemoryError) {
+            // A very large photo on a low-memory phone: fall back to typing instead of crashing.
+            OcrState.Failed
         }
     }
     val atCodeStep = phase is Phase.Codes
@@ -178,6 +183,7 @@ fun ScanResultScreen(
             val p = ScanFlow.prefill(entry, o.reading)
             entry = p.entry
             fromPhoto = p.fromPhoto
+            foundInPhoto = p.fromPhoto
             ocrApplied = true
         }
     }
@@ -240,6 +246,8 @@ fun ScanResultScreen(
                 codePanelPhoto = codePanelPhoto,
                 entry = entry,
                 ocr = ocr,
+                photoApplied = ocrApplied,
+                foundInPhoto = foundInPhoto,
                 fromPhoto = fromPhoto,
                 confirmed = codesConfirmed,
                 onConfirmedChange = { codesConfirmed = it },
@@ -382,6 +390,10 @@ private fun CodeStage(
     codePanelPhoto: Uri,
     entry: ScanFlow.CodeEntry,
     ocr: OcrState,
+    /** True once the photo's reading has been applied to the fields. */
+    photoApplied: Boolean,
+    /** Fields the photo filled, whether or not the user has edited them since. */
+    foundInPhoto: Set<String>,
     /** Fields still holding the photo's reading (not edited by the user since). */
     fromPhoto: Set<String>,
     confirmed: Boolean,
@@ -428,7 +440,7 @@ private fun CodeStage(
                 if (key == ScanFlow.FIELD_LOT && CodePanelText.lotHasLookalikes(value)) {
                     " Look closely at O and 0, I and 1, S and 5."
                 } else ""
-            ocr is OcrState.Done && value.isBlank() -> "Not found in the photo. Type it if it's printed."
+            photoApplied && key !in foundInPhoto && value.isBlank() -> "Not found in the photo. Type it if it's printed."
             else -> null
         }
 
