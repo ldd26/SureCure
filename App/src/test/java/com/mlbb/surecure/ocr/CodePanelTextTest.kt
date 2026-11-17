@@ -262,4 +262,39 @@ class CodePanelTextTest {
         assertNull(read("Do not use after expiry date.", "Store below 30C").expiry)
         assertNull(read("MFG. BY: UNILAB, INC. 66 UNITED ST").manufactured)
     }
+
+    // ------------------------------------------------------------------ bars
+
+    @Test
+    fun barcodeFromTheBarsWinsOverTheDigits() {
+        // The printed digits were misread into another valid code; the bars decide.
+        val s = CodePanelText.scan(listOf("4 807788 561688", "LOT 23651568"), bars = listOf("4807788526762"))
+        assertEquals("4807788526762", s.reading.barcode)
+        assertTrue(s.barcodeFromBars)
+        assertEquals("23651568", s.reading.lot)
+    }
+
+    @Test
+    fun barsThatFailTheCheckDigitAreIgnored() {
+        val s = CodePanelText.scan(listOf("4 807788 526762"), bars = listOf("4807788526763"))
+        assertEquals("4807788526762", s.reading.barcode)
+        assertFalse(s.barcodeFromBars)
+    }
+
+    @Test
+    fun twoDifferentBarcodesFromTheBarsSuggestNeither() {
+        val s = CodePanelText.scan(listOf("4 807788 526762"), bars = listOf("4807788526762", "4807788561688"))
+        assertNull(s.reading.barcode)
+        assertFalse(s.barcodeFromBars)
+        // The same code decoded twice is one code.
+        assertTrue(CodePanelText.scan(emptyList(), listOf("4807788526762", "4807788526762")).barcodeFromBars)
+    }
+
+    @Test
+    fun noBarsKeepsTheTextReadingAndTheRawLines() {
+        val lines = listOf("LOT NO.: U066300", "EXP. MAR 2O28")
+        val s = CodePanelText.scan(lines, bars = emptyList())
+        assertEquals(CodePanelText.read(lines), s.reading)
+        assertEquals(lines, s.lines)
+    }
 }
