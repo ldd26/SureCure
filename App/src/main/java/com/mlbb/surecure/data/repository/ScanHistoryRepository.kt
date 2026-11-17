@@ -2,8 +2,6 @@
 package com.mlbb.surecure.data.repository
 
 import android.content.Context
-import android.os.Build
-import androidx.annotation.RequiresApi
 import com.mlbb.surecure.R
 import com.mlbb.surecure.ui.dashboard.ScanHistoryEntry
 import com.mlbb.surecure.ui.dashboard.ScanSafety
@@ -14,7 +12,6 @@ import org.json.JSONObject
 import java.io.File
 import java.time.Instant
 
-@RequiresApi(Build.VERSION_CODES.O)
 class ScanHistoryRepository(context: Context) {
 
     private val appContext = context.applicationContext
@@ -29,7 +26,6 @@ class ScanHistoryRepository(context: Context) {
      * Returns cached entries by default.
      * @param forceRefresh Set to true to reread the JSON file.
      */
-    @RequiresApi(Build.VERSION_CODES.O)
     suspend fun loadEntries(
         forceRefresh: Boolean = false
     ): List<ScanHistoryEntry> = withContext(Dispatchers.IO) {

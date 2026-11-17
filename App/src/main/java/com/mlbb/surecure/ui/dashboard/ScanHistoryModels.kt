@@ -1,8 +1,6 @@
 package com.mlbb.surecure.ui.dashboard
 
-import android.os.Build
 import androidx.annotation.DrawableRes
-import androidx.annotation.RequiresApi
 import com.mlbb.surecure.R
 import java.time.Instant
 import java.time.LocalDate
@@ -44,7 +42,6 @@ data class ScanHistorySection(
  * Uses the supplied timezone to determine calendar dates.
  * Entries older than one year are grouped together.
  */
-@RequiresApi(Build.VERSION_CODES.O)
 fun groupScanHistory(
     entries: List<ScanHistoryEntry>,
     zoneId: ZoneId = ZoneId.systemDefault()

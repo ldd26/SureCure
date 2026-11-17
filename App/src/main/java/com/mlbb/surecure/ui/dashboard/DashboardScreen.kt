@@ -1,7 +1,5 @@
 package com.mlbb.surecure.ui.dashboard
 
-import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -58,7 +56,6 @@ private val UnsafeRowBackground = Color(0xFFFFE8E8)
  * @param onScanClick Optional callback for a scan-history row.
  * @param sections Data to display. Defaults to sample content matching the HTML export.
  */
-@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun DashboardScreen(
     sections: List<ScanHistorySection>,
@@ -192,7 +189,6 @@ private fun BrandMark() {
     )
 }
 
-@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 private fun ScanHistoryRow(
     entry: ScanHistoryEntry,

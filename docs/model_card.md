@@ -6,6 +6,7 @@ Fill from `metrics.json`, `calibration.json` and `guard_eval.json` of the frozen
 | Item | Value |
 |---|---|
 | Run name | Weights: Kaggle version 7 (`best.pt`, 10 epochs, LR 3e-4, WD 1e-4). Evaluation: `run_20261023_2238` (eval-only) |
+| Bundled package | `run_20261024_0546` (`run_name` in `App/src/main/assets/model/meta.json`); not confirmed here to be the same weights as the evaluation run above |
 | Architecture | ResNet-18, ImageNet-pretrained, 20 classes |
 | Training data | Capsure synthetic composites only (36,000 train / 4,000 validation) |
 | real_test top-1 (frame / burst, Wilson 95% CI) | 48.4% / 54.6% (48.9 to 60.2), 295 bursts |

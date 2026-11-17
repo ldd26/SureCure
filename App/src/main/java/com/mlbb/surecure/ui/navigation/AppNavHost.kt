@@ -1,8 +1,6 @@
 package com.mlbb.surecure.ui.navigation
 
 import android.net.Uri
-import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
@@ -18,7 +16,6 @@ import com.mlbb.surecure.ui.camera.PhotoReviewScreen
 import com.mlbb.surecure.ui.dashboard.DashboardRoute
 import com.mlbb.surecure.ui.result.ScanResultScreen
 
-@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun AppNavHost() {
     val navController = rememberNavController()
