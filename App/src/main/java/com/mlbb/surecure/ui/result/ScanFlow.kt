@@ -150,14 +150,75 @@ object ScanFlow {
      * Stage 3 headline. Red has two causes: a lot listed in an FDA counterfeit advisory, or codes
      * that belong to a different product. Only the first may say it matches an advisory.
      */
-    fun headline(verdict: Verdict): String =
-        if (verdict.level == VerdictLevel.RED && !verdict.counterfeitLotMatch) {
-            RED_MISMATCH_HEADLINE
-        } else {
-            verdict.level.headline
-        }
+    fun headline(verdict: Verdict, expiry: ExpiryStatus? = null): String = when {
+        verdict.level == VerdictLevel.RED && !verdict.counterfeitLotMatch -> RED_MISMATCH_HEADLINE
+        verdict.level == VerdictLevel.RED -> verdict.level.headline
+        // Expired is amber in the rules engine; the screen says it plainly instead of "Couldn't fully verify".
+        expiry is ExpiryStatus.Expired -> EXPIRED_HEADLINE
+        else -> verdict.level.headline
+    }
 
     const val RED_MISMATCH_HEADLINE = "Codes belong to a different product"
+    const val EXPIRED_HEADLINE = "Expired: do not take this medicine"
+
+    // ------------------------------------------------------------------ expiry
+
+    /**
+     * How the pack's expiry date compares with today. Shown on the code step as soon as the date is
+     * known and with the verdict. "Expired" uses the rules engine's test (expiry before today), so
+     * the two always agree; the engine itself is unchanged and still gives amber "Expired on ...".
+     */
+    sealed interface ExpiryStatus {
+        val on: PackDate
+
+        data class Expired(override val on: PackDate) : ExpiryStatus
+        data class ExpiresSoon(override val on: PackDate, val daysLeft: Int) : ExpiryStatus
+        data class Valid(override val on: PackDate) : ExpiryStatus
+    }
+
+    /** "Expires soon" when this many days or fewer are left. */
+    const val EXPIRES_SOON_DAYS = 90
+
+    fun expiryStatus(expiry: PackDate?, today: PackDate): ExpiryStatus? {
+        if (expiry == null) return null
+        val daysLeft = (epochDay(expiry) - epochDay(today)).toInt()
+        return when {
+            expiry < today -> ExpiryStatus.Expired(expiry)
+            daysLeft <= EXPIRES_SOON_DAYS -> ExpiryStatus.ExpiresSoon(expiry, daysLeft)
+            else -> ExpiryStatus.Valid(expiry)
+        }
+    }
+
+    /** Status of the expiry field as typed or read from the photo; null while blank or unreadable. */
+    fun expiryStatus(printed: String, today: PackDate): ExpiryStatus? =
+        expiryStatus(PackDate.parsePrinted(printed.trim().takeIf { it.isNotEmpty() }, endOfMonth = true), today)
+
+    /** One line for the user, e.g. "Expired on 31 Mar 2026." */
+    fun expiryNote(status: ExpiryStatus): String = when (status) {
+        is ExpiryStatus.Expired -> "Expired on ${formatDate(status.on)}. Expired medicine may not work and should not be taken."
+        is ExpiryStatus.ExpiresSoon -> when (status.daysLeft) {
+            0 -> "Expires today (${formatDate(status.on)})."
+            1 -> "Expires tomorrow (${formatDate(status.on)})."
+            else -> "Expires in ${status.daysLeft} days, on ${formatDate(status.on)}."
+        }
+        is ExpiryStatus.Valid -> "Expires on ${formatDate(status.on)}."
+    }
+
+    private val MONTH_NAMES = listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+
+    /** 2026-03-31 -> "31 Mar 2026". */
+    fun formatDate(d: PackDate): String = "${d.day} ${MONTH_NAMES[d.month - 1]} ${d.year}"
+
+    /** Days since 1970-01-01 (proleptic Gregorian), for day counts without java.time. */
+    private fun epochDay(d: PackDate): Long {
+        val y = if (d.month <= 2) d.year - 1 else d.year
+        val era = (if (y >= 0) y else y - 399) / 400
+        val yoe = y - era * 400
+        val mp = (d.month + 9) % 12
+        val doy = (153 * mp + 2) / 5 + d.day - 1
+        val doe = yoe * 365 + yoe / 4 - yoe / 100 + doy
+        return era * 146097L + doe - 719468
+    }
 
     /** "Find a nearby drugstore" is offered when the result isn't green. */
     fun offersNearbyDrugstores(verdict: Verdict): Boolean = verdict.level != VerdictLevel.GREEN

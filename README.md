@@ -57,6 +57,7 @@ Fakes are made to look right, so looking closely doesn't help much. What *does* 
 | 🧠 **On-device recognition** | A small vision model recognizes 20 common Philippine OTC products, with no internet needed |
 | 🙅 **Knows what it doesn't know** | Unfamiliar packs are flagged instead of guessed |
 | 🔎 **Code check** | On-device text recognition reads the barcode, lot, registration number and dates from the code-panel photo; the user checks or types each one, confirms, and the codes are checked against FDA-based rules |
+| ⏰ **Expiry check** | The expiry date read from the pack is checked at once: an expired pack says "Expired: do not take this medicine", and one within 90 days of expiry is flagged |
 | 🚦 **Clear verdict** | 🔴 red, 🟡 amber or 🟢 green, always with the reasons |
 | 📍 **Next step** | Amber and red results link to FDA verification and reporting, and point to nearby established drugstores |
 | 🗒️ **Scan history** | Every verdict is saved on the phone, grouped by month |

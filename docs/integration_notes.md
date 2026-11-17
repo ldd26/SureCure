@@ -211,3 +211,10 @@ Existing files touched (glue only):
   244 MB APK. Not done, for the team to decide: compressing native libraries
   (`packaging.jniLibs.useLegacyPackaging = true`) would cut the arm64 download by about 28 MB but
   adds about 45 MB of installed size; quantizing the 46 MB model needs the full model route.
+- **Expiry first (branch `feature/expiry-first`, from the 2026-11-17 mentor session).** As soon as
+  the expiry field has a readable date (from OCR or typed), the code step says "Expired" or
+  "Expires in N days" (90 days or fewer). On the verdict, an expired pack gets the headline
+  "Expired: do not take this medicine" in red styling, with the date stated under it; a counterfeit
+  lot match keeps the red advisory headline. Display only: the rules engine is unchanged (still
+  amber "Expired on ..."), so parity holds, and history still saves amber as `UNSAFE`. Logic in
+  `ScanFlow.expiryStatus` / `expiryNote` / `headline`, tested in `ScanFlowTest`.

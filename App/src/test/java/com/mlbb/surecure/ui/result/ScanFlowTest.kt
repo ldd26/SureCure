@@ -7,6 +7,7 @@ import com.mlbb.surecure.ocr.CodePanelReading
 import com.mlbb.surecure.ocr.CodePanelText
 import com.mlbb.surecure.rules.FdaTables
 import com.mlbb.surecure.rules.PackDate
+import com.mlbb.surecure.rules.ScanInput
 import com.mlbb.surecure.rules.VerdictLevel
 import com.mlbb.surecure.rules.verify
 import org.junit.Assert.assertEquals
@@ -219,6 +220,57 @@ class ScanFlowTest {
             barcode = "4 807788 526762", lot = "U066300", regNo = "DR-XY37402", expiry = "MAR 2028",
         )
         assertEquals(scanFor("Bioflu", typed), scanFor("Bioflu", prefilled))
+    }
+
+    @Test
+    fun expiryStatusMatchesTheRulesEngine() {
+        val today = PackDate(2026, 11, 17)
+        // Expired means before today, exactly as verify() decides "Expired on ...".
+        assertEquals(
+            ScanFlow.ExpiryStatus.Expired(PackDate(2026, 11, 16)),
+            ScanFlow.expiryStatus(PackDate(2026, 11, 16), today),
+        )
+        assertEquals(
+            ScanFlow.ExpiryStatus.ExpiresSoon(PackDate(2026, 11, 17), 0),
+            ScanFlow.expiryStatus(PackDate(2026, 11, 17), today),
+        )
+        // 90 days is still "soon"; 91 is not.
+        assertEquals(
+            ScanFlow.ExpiryStatus.ExpiresSoon(PackDate(2027, 2, 15), 90),
+            ScanFlow.expiryStatus(PackDate(2027, 2, 15), today),
+        )
+        assertEquals(
+            ScanFlow.ExpiryStatus.Valid(PackDate(2027, 2, 16)),
+            ScanFlow.expiryStatus(PackDate(2027, 2, 16), today),
+        )
+        assertNull(ScanFlow.expiryStatus(null, today))
+    }
+
+    @Test
+    fun expiryStatusFromThePrintedDate() {
+        val today = PackDate(2026, 11, 17)
+        // A month-only date runs to the end of the month, so a pack isn't expired during its last month.
+        assertEquals(
+            ScanFlow.ExpiryStatus.ExpiresSoon(PackDate(2026, 11, 30), 13),
+            ScanFlow.expiryStatus("NOV 2026", today),
+        )
+        assertEquals(ScanFlow.ExpiryStatus.Expired(PackDate(2026, 10, 31)), ScanFlow.expiryStatus("10/2026", today))
+        assertNull(ScanFlow.expiryStatus("", today))
+        assertNull(ScanFlow.expiryStatus("03/15/2028", today)) // ambiguous, left to the user
+    }
+
+    @Test
+    fun expiredPackGetsAPlainHeadlineUnlessItIsRed() {
+        val expiredScan = ScanInput("Biogesic", lot = "24A0912", expDate = PackDate(2026, 3, 31))
+        val v = verify(expiredScan, tables, PackDate(2026, 11, 17))
+        assertEquals(VerdictLevel.AMBER, v.level)
+        assertTrue(v.reasons.any { it.startsWith("Expired on") })
+        val status = ScanFlow.expiryStatus(expiredScan.expDate, PackDate(2026, 11, 17))
+        assertEquals(ScanFlow.EXPIRED_HEADLINE, ScanFlow.headline(v, status))
+        // A listed counterfeit lot keeps the red headline even when the pack is also expired.
+        val red = verify(expiredScan.copy(lot = "23651568"), tables, PackDate(2026, 11, 17))
+        assertEquals(VerdictLevel.RED.headline, ScanFlow.headline(red, status))
+        assertEquals("Expired on 31 Mar 2026. Expired medicine may not work and should not be taken.", ScanFlow.expiryNote(status!!))
     }
 
     private fun scanFor(product: String, entry: ScanFlow.CodeEntry) =
