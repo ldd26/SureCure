@@ -67,7 +67,9 @@ val verdict = verify(
   the app should ask the user. Python takes full dates only, so this parser is app-side input
   handling, not a change to the rules.
 - **No java.time in the engine.** minSdk is 24; `java.time` needs API 26 without desugaring.
-  `PackDate` prints dates as `yyyy-MM-dd`, like Python, so reason texts match.
+  `PackDate` prints dates as `yyyy-MM-dd`, like Python, so reason texts match. (Core library
+  desugaring is on since 2026-11-17, so the app's history code can use `java.time`; the engine
+  keeps `PackDate` for parity with Python.)
 - **Python truthiness kept.** An empty string counts as "not given", the same as `None`, in every
   place Python tests a value with `if x`.
 - **Tables are copies.** `assets/fda/*.csv` must equal `data/fda/*.csv`; `RulesRealDataTest`
@@ -84,13 +86,14 @@ Python: `pytest -q rules/tests`.
 
 - `SureCureRulesTest`: 23/23 pass (the same 23 tests as `test_rules.py`, which also passes 23/23).
 - `RulesRealDataTest`: 10/10 pass. Includes the six cases from the brief: Biogesic + `23651568`
-  red, Biogesic + `2365I568` red, Biogesic + `DR-153` + unlisted lot green, Bioflu + `U066300`
-  red, Flanax + `261` not red, Biogesic + `DR-XY34482` red.
+  red, Biogesic + `2365I568` amber (one look-alike character; red until 2026-11-17), Biogesic +
+  `DR-153` + unlisted lot green, Bioflu + `U066300` red, Flanax + `261` not red, Biogesic +
+  `DR-XY34482` red.
 - `RulesParityTest`: 1,027 cases on the bundled tables (every listed lot plus 700 random
   combinations), identical level, product checked and reasons to Python. Every rule fires in
-  the set except the registration-validity date check (no validity dates were scraped; the 21
+  the set except the registration-validity date check (no validity dates were scraped; the 23
   scenarios cover it). A deliberate break (fuzzy length 6 to 5) made 4 cases differ, so the
-  test does catch changes.
+  test does catch changes (checked on the earlier one-edit rule).
 - `PackDateTest`: 6/6 pass.
 
 ## Flagged, not decided
@@ -132,3 +135,20 @@ Tests (`RulesBarcodeTest`, 7/7; expected reasons are the Python engine's output)
 Bioflu + `4807788526762` → no barcode reason; Biogesic + `4807788526762` → red "Barcode belongs to
 Bioflu, not Biogesic."; valid unknown `4807788000019` → amber "not in the barcode table"; bad check
 digit `4807788526763` → amber, never red; Biogesic barcode + Bioflu registration → red; lookup helper.
+
+## Lot rule change (2026-11-17, PR #17)
+
+Changed in `rules/surecure_rules.py` and `SureCureRules.kt` together; parity cases regenerated
+(red 698 → 640, amber 312 → 373, green 17 → 14).
+
+| Lot entered | Before | Now |
+|---|---|---|
+| Exactly matches a lot listed for the product | Red | Red |
+| One look-alike character (O/0, I/1, L/1, S/5, B/8, Z/2, G/6) from a listed lot of 6+ characters | Red | Amber, "Check the lot number again." |
+| Any other one-character difference | Red | Not flagged |
+| Exactly matches a lot listed for a different product (or no product identified) | Not flagged | Amber, "Check that the product is right." |
+
+Why: lots are sequential, so a genuine neighbour of a listed lot was called counterfeit (five
+listed pairs are already one edit apart); and a wrong product choice hid a listed lot.
+Trade-off: a counterfeit lot typed with one wrong, non-look-alike character gets no lot warning.
+`Verdict.counterfeitLotMatch` is now true only for the exact red match.

@@ -95,14 +95,14 @@ How to run the golden test:
 1. `settings.gradle.kts` has `include(":app")` but the folder is `App/`. Works on Windows
    and macOS, fails on Linux/CI with "Configuring project ':app' without an existing
    directory is not allowed" (confirmed with Gradle 9.6). Suggested fix:
-   `project(":app").projectDir = file("App")`, or rename the folder.
+   `project(":app").projectDir = file("App")`, or rename the folder. (Fixed 2026-11-17, #17.)
 2. `gradlew` is committed without the execute bit (mode 100644). Linux/macOS need
-   `sh gradlew`. Fix: `git update-index --chmod=+x gradlew`.
+   `sh gradlew`. Fix: `git update-index --chmod=+x gradlew`. (Fixed 2026-11-17, #17.)
 3. `ui/helper/ScanDateFormatter.kt` declares `package com.mlbb.surecure.util`.
 4. The sample `scan_history.json` sits in `src/main/java/...`, which isn't packaged; the app
    reads `filesDir/scan_history.json` and starts from `[]`.
 5. `java.time` is used behind `@RequiresApi(O)` while `minSdk = 24`; API 24 to 25 would crash
-   without core library desugaring.
+   without core library desugaring. (Fixed 2026-11-17, #17: desugaring enabled.)
 6. Verdicts are two levels (`ScanSafety { SAFE, UNSAFE }`, "Marked safe/unsafe"); the
    product needs red / amber / green with "No match with FDA counterfeit records" wording (fixed: the dashboard now shows 'No match with FDA records' / 'Flagged: check with FDA').
    To be proposed separately; not changed here.
@@ -112,7 +112,8 @@ How to run the golden test:
 - APK size. The debug APK is 195 MB: ONNX Runtime ships native libraries for 4 ABIs
   (x86 40.9 MB, x86_64 40.9 MB, arm64-v8a 34.3 MB, armeabi-v7a 24.3 MB) plus the 45.8 MB
   model. An `abiFilters` setting (for example arm64-v8a + armeabi-v7a for phones) would roughly
-  halve it, but changes the Gradle setup, so it needs the app dev's OK.
+  halve it, but changes the Gradle setup, so it needs the app dev's OK. (2026-11-17: the build now
+  writes one APK per ABI instead; see the update at the end.)
 - Repo size. `surecure.onnx` is 45.8 MB, under GitHub's 50 MB warning and 100 MB limit,
   so it commits normally. Git LFS or a GitHub Release asset is an option if the team
   prefers to keep the repo small.
@@ -134,8 +135,8 @@ Flow: photo review → "Check this medicine" → `scan-result`:
      products first, then every other product in the FDA tables, with a search field and
      "It's not listed / I don't know".
 2. **Stage 2, codes.** The code-panel photo is shown above fields for lot, registration number,
-   expiry and manufacture date. Typed by the user for now; ML Kit reading should fill the same
-   fields later for the user to confirm. Blank means "not entered". A date that can't be read
+   expiry and manufacture date. Since #16 (2026-11-16) on-device OCR pre-fills these fields
+   for the user to confirm; see the update at the end. Blank means "not entered". A date that can't be read
    is flagged on the field instead of being ignored.
 3. **Stage 3, verdict.** `verify()` on the bundled tables; the headline, the product checked
    and every reason. "Edit the codes" goes back with the typed codes kept.
@@ -163,7 +164,7 @@ Existing files touched (glue only):
 
 ### Not done yet
 
-- Stage 0 blur and glare check; Stage 2 ML Kit reading; Stage 4 visual check and reporting.
+- Stage 0 blur and glare check; Stage 4 visual check and reporting. (Stage 2 ML Kit reading: done in #16.)
 - Saving the result to scan history: needs `ScanSafety` to have three levels (app dev's model).
 - The screen state is not kept across rotation or process death.
 - The screens compile and their logic is unit tested, but have not been run on a device yet.
@@ -186,3 +187,27 @@ Existing files touched (glue only):
   show the barcode check before product identification. A camera barcode scanner (ML Kit) is still to come.
 - Still for the app dev or the team: saving results to scan history (three-level `ScanSafety`), the
   red-for-mismatched-codes wording in Figure 1, and the `:app` / `App/` build issue.
+
+## Update (2026-11-17)
+
+- **Code-panel OCR (#16).** `ocr/CodePanelReader.kt` runs ML Kit Text Recognition v2 (bundled
+  Latin model, `com.google.mlkit:text-recognition:16.0.1`, offline) on the code-panel photo;
+  `ocr/CodePanelText.kt` (pure Kotlin, JVM-tested in `CodePanelTextTest`) extracts the barcode,
+  lot, registration number and dates. `ScanFlow.prefill` fills only blank fields, and "Check
+  against FDA records" needs the user to tick "I've checked these codes against the pack" (or edit
+  every pre-filled field). OCR never decides a verdict.
+- **OCR fixes (branch `fix/ocr-and-apk-size`).** Ordinary words are no longer read as registration
+  numbers ("DR. BOSS" gives nothing; plain `DR`/`FR` need a hyphen or a "Reg." label); labels
+  stacked above their values and combined labels ("Lot No./Exp. Date: A / B") are paired;
+  misread labels and months (`L0T`, `N0.`, `0CT`), compact dates (`15MAR2O28`, `EXP032028`) and a
+  stray mark beside the barcode are handled; two different values for one field suggest neither.
+  The photo is decoded downsampled (long side at least 1920 px) with its EXIF rotation passed to
+  ML Kit, and an out-of-memory error falls back to typing.
+- **Fixed (#17).** Android 7.0/7.1 crash (core library desugaring on), `:app` / `App/` build path
+  and `gradlew` execute bit, README branch count, model card run name, and the lot rules (see
+  `docs/rules_integration_notes.md`).
+- **APK size.** One APK per ABI (`splits.abi`: arm64-v8a, armeabi-v7a, x86_64; 32-bit x86
+  dropped). Debug APKs: arm64-v8a 107.8 MB, armeabi-v7a 93.5 MB, x86_64 115.0 MB, instead of one
+  244 MB APK. Not done, for the team to decide: compressing native libraries
+  (`packaging.jniLibs.useLegacyPackaging = true`) would cut the arm64 download by about 28 MB but
+  adds about 45 MB of installed size; quantizing the 46 MB model needs the full model route.

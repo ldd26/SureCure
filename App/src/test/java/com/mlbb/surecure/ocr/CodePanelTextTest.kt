@@ -107,6 +107,21 @@ class CodePanelTextTest {
     }
 
     @Test
+    fun ordinaryTextIsNotARegistrationNumber() {
+        // Words made of look-alike letters must not become digits.
+        assertNull(read("DR. BOSS PHARMA").regNo)
+        assertNull(read("FR. ISIS").regNo)
+        // "DR" / "FR" followed by a number need the hyphen or a registration label.
+        assertNull(read("DR 50 mg tablet").regNo)
+        assertNull(read("FR 12 tablets").regNo)
+        assertEquals("DR-4184", read("DR-4184").regNo)
+        assertEquals("DR-4184", read("Reg. No. DR 4184").regNo)
+        assertEquals("FR-4000007831450", read("FDA Registration No.: FR 4000007831450").regNo)
+        // Unambiguous prefixes still read without a hyphen.
+        assertEquals("DRP-13914", read("DRP 13914").regNo)
+    }
+
+    @Test
     fun registrationNotGuessed() {
         assertNull(read("DR-XY45182", "DRP-13914").regNo)
         assertNull(read("Dr. Reddy's Laboratories").regNo)
@@ -164,5 +179,87 @@ class CodePanelTextTest {
         assertNull(read("MFG: 03/15/2025").manufactured)
         // Must not be cut down to "03 15" (March 2015).
         assertNull(read("EXP 03 15 2028").expiry)
+    }
+
+    // ------------------------------------------------------------------ layouts and misreads
+
+    @Test
+    fun combinedLabelWithSlashSeparatedValues() {
+        val r = read("Lot No./Exp. Date: 23651568 / MAR 2028")
+        assertEquals("23651568", r.lot)
+        assertEquals("MAR 2028", r.expiry)
+    }
+
+    @Test
+    fun combinedLabelWithSpaceSeparatedValues() {
+        val r = read("LOT/EXP: 23651568 MAR 2028")
+        assertEquals("23651568", r.lot)
+        assertEquals("MAR 2028", r.expiry)
+    }
+
+    @Test
+    fun labelsStackedAboveTheirValues() {
+        val r = read("EXP. DATE", "LOT NO.", "MAR 2028", "U066300")
+        assertEquals("MAR 2028", r.expiry)
+        assertEquals("U066300", r.lot)
+        val s = read("LOT", "EXP", "MFG", "U066300", "MAR 2028", "MAR 2025")
+        assertEquals("U066300", s.lot)
+        assertEquals("MAR 2028", s.expiry)
+        assertEquals("MAR 2025", s.manufactured)
+    }
+
+    @Test
+    fun stackedRegistrationLabelKeepsItsOwnValue() {
+        // The registration number must not be taken as the lot.
+        val r = read("REG. NO.", "LOT NO.", "DR-XY45182", "U066300")
+        assertEquals("DR-XY45182", r.regNo)
+        assertEquals("U066300", r.lot)
+    }
+
+    @Test
+    fun misreadLabelsAreRecognised() {
+        assertEquals("23651568", read("LOT N0. 23651568").lot)
+        assertEquals("23651568", read("L0T 23651568").lot)
+    }
+
+    @Test
+    fun strayMarkBesideTheBarcodeIsIgnored() {
+        assertEquals("4807788526762", read("4 807788 526762 >").barcode)
+        assertEquals("4807788526762", read("4 807788 526762>").barcode)
+    }
+
+    @Test
+    fun monthNamesWithDigitMisreads() {
+        assertEquals("OCT 2027", read("EXP 0CT 2027").expiry)
+        assertEquals("NOV 2027", read("EXP N0V 2027").expiry)
+        assertEquals("AUG 2027", read("EXP AU6 2027").expiry)
+    }
+
+    @Test
+    fun datesPrintedWithoutSpaces() {
+        assertEquals("15 MAR 2028", read("EXP 15MAR2O28").expiry)
+        assertEquals("MAR 2028", read("EXP MAR2028").expiry)
+        assertEquals("03/2028", read("EXP032028").expiry)
+        assertEquals("03/2025", read("MFG032025").manufactured)
+    }
+
+    @Test
+    fun twoDifferentExpiryDatesSuggestNeither() {
+        assertNull(read("EXP 12/2027", "EXP 01/2029").expiry)
+        // The same date printed twice in two forms is fine.
+        assertEquals("MAR 2028", read("EXP MAR 2028", "EXP 03/2028").expiry)
+    }
+
+    @Test
+    fun twoDifferentLotsSuggestNeither() {
+        assertNull(read("LOT 23651568", "LOT 23651569").lot)
+        assertEquals("23651568", read("LOT 23651568", "Batch No. 23651568").lot)
+    }
+
+    @Test
+    fun aLabelWithoutAValueDoesNotStealUnrelatedText() {
+        // "Do not use after expiry date." is a label with nothing after it; the next line isn't a date.
+        assertNull(read("Do not use after expiry date.", "Store below 30C").expiry)
+        assertNull(read("MFG. BY: UNILAB, INC. 66 UNITED ST").manufactured)
     }
 }

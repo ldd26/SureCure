@@ -56,7 +56,7 @@ Fakes are made to look right, so looking closely doesn't help much. What *does* 
 | 🏷️ **Barcode first** | A listed barcode identifies the product straight away |
 | 🧠 **On-device recognition** | A small vision model recognizes 20 common Philippine OTC products, with no internet needed |
 | 🙅 **Knows what it doesn't know** | Unfamiliar packs are flagged instead of guessed |
-| 🔎 **Code check** | The barcode, lot, registration number and dates are typed next to the code-panel photo, confirmed by the user, and checked against FDA-based rules |
+| 🔎 **Code check** | On-device text recognition reads the barcode, lot, registration number and dates from the code-panel photo; the user checks or types each one, confirms, and the codes are checked against FDA-based rules |
 | 🚦 **Clear verdict** | 🔴 red, 🟡 amber or 🟢 green, always with the reasons |
 | 📍 **Next step** | Amber and red results link to FDA verification and reporting, and point to nearby established drugstores |
 | 🗒️ **Scan history** | Every verdict is saved on the phone, grouped by month |
@@ -87,7 +87,7 @@ flowchart LR
     G -- yes, confident --> D
     L --> D
     T --> D
-    D --> E[User enters codes]
+    D --> E[Codes read from photo, user confirms]
     E --> R{Rules vs FDA tables}
     R --> V1[🔴 Red]
     R --> V2[🟡 Amber]
@@ -149,7 +149,9 @@ git clone <this repository>
 cd SureCure
 ```
 
-**Run the app.** Open the folder in Android Studio, let Gradle sync, press ▶️. The model and all tables are bundled, so it works offline.
+**Run the app.** Open the folder in Android Studio, let Gradle sync, press ▶️. The model, the text-recognition model and all tables are bundled, so it works offline.
+
+**Build an APK.** `./gradlew :app:assembleDebug` writes one APK per CPU type to `App/build/outputs/apk/debug/`: `app-arm64-v8a-debug.apk` for almost every current phone, `app-armeabi-v7a-debug.apk` for older or Android Go phones, `app-x86_64-debug.apk` for the emulator. The arm64 APK is about 108 MB (armeabi-v7a about 94 MB, x86_64 about 115 MB), instead of one 244 MB APK carrying all of them.
 
 **Run the tests**
 
@@ -185,7 +187,7 @@ docs/                    model card, data sources, integration notes
 med-images/              team photos used in the fine-tuning experiment
 ```
 
-**Dependencies.** App: Kotlin, Jetpack Compose, Navigation Compose, CameraX, ONNX Runtime for Android (pinned in `gradle/libs.versions.toml` and `App/build.gradle.kts`). Notebook: PyTorch, torchvision, scikit-learn, SciPy, pandas, Pillow, onnxruntime. Data scripts: pandas, NumPy, matplotlib. Weights, datasets and run outputs stay out of git.
+**Dependencies.** App: Kotlin, Jetpack Compose, Navigation Compose, CameraX, ONNX Runtime for Android, ML Kit Text Recognition v2 (bundled model) (pinned in `gradle/libs.versions.toml` and `App/build.gradle.kts`). Notebook: PyTorch, torchvision, scikit-learn, SciPy, pandas, Pillow, onnxruntime. Data scripts: pandas, NumPy, matplotlib. Weights, datasets and run outputs stay out of git.
 
 ## 🤝 How we built it
 
