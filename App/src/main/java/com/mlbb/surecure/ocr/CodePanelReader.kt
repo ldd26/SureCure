@@ -5,6 +5,10 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.media.ExifInterface
 import android.net.Uri
+import com.google.android.gms.tasks.Task
+import com.google.mlkit.vision.barcode.BarcodeScannerOptions
+import com.google.mlkit.vision.barcode.BarcodeScanning
+import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
@@ -16,8 +20,9 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
 /**
- * On-device OCR of the code-panel photo with ML Kit's bundled Latin model (no network, no Play
- * services download). Returns suggestions only; CodePanelText does the extraction.
+ * On-device reading of the code-panel photo with ML Kit's bundled models (no network, no Play
+ * services download): text recognition for the printed codes and barcode scanning (EAN-13 only)
+ * for the bars. Returns suggestions only; CodePanelText does the extraction.
  */
 object CodePanelReader {
 
@@ -28,25 +33,30 @@ object CodePanelReader {
      */
     private const val MIN_LONG_SIDE_PX = 1920
 
-    suspend fun read(context: Context, photo: Uri): CodePanelReading =
-        CodePanelText.read(recognizeLines(context, photo))
-
-    /** Recognized text, one string per line, in ML Kit's block order. */
-    private suspend fun recognizeLines(context: Context, photo: Uri): List<String> {
+    suspend fun read(context: Context, photo: Uri): CodePanelScan {
         val (bitmap, rotation) = withContext(Dispatchers.IO) { decode(context, photo) }
         val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+        val scanner = BarcodeScanning.getClient(
+            BarcodeScannerOptions.Builder().setBarcodeFormats(Barcode.FORMAT_EAN_13).build()
+        )
         try {
             val image = InputImage.fromBitmap(bitmap, rotation)
-            val text = suspendCancellableCoroutine { cont ->
-                recognizer.process(image)
-                    .addOnSuccessListener { cont.resume(it) }
-                    .addOnFailureListener { cont.resumeWithException(it) }
-            }
-            return text.textBlocks.flatMap { block -> block.lines.map { it.text } }
+            // Recognized text, one string per line, in ML Kit's block order.
+            val lines = recognizer.process(image).await().textBlocks.flatMap { block -> block.lines.map { it.text } }
+            // A failed bar scan is not fatal: the printed digits are still read from the text.
+            val bars = runCatching { scanner.process(image).await().mapNotNull { it.rawValue } }
+                .getOrElse { e -> if (e is kotlinx.coroutines.CancellationException) throw e else emptyList() }
+            return CodePanelText.scan(lines, bars)
         } finally {
             recognizer.close()
+            scanner.close()
             bitmap.recycle()
         }
+    }
+
+    private suspend fun <T> Task<T>.await(): T = suspendCancellableCoroutine { cont ->
+        addOnSuccessListener { cont.resume(it) }
+        addOnFailureListener { cont.resumeWithException(it) }
     }
 
     /** The photo, downsampled, and the clockwise rotation that makes it upright (from its EXIF tag). */

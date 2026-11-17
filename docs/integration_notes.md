@@ -218,3 +218,12 @@ Existing files touched (glue only):
   lot match keeps the red advisory headline. Display only: the rules engine is unchanged (still
   amber "Expired on ..."), so parity holds, and history still saves amber as `UNSAFE`. Logic in
   `ScanFlow.expiryStatus` / `expiryNote` / `headline`, tested in `ScanFlowTest`.
+- **Field-test preparation (branch `feature/field-test-prep`).** The code-panel photo is also
+  scanned for EAN-13 bars (ML Kit Barcode Scanning 17.3.0, bundled; Google says about 2.4 MB, measured +6.0 MB on the arm64 APK, now 113.9 MB): one valid code
+  from the bars replaces the digits read by OCR, two different ones leave the field empty
+  (`CodePanelText.scan`). The barcode-first step is now pre-filled too; pressing "Check the
+  barcode" is the confirmation, and an unconfirmed value is cleared if the user switches to the
+  photo. The code step has "Show what the phone read" with "Copy this text", so testers can
+  capture real OCR text. `docs/field_test.md` is the test protocol,
+  `data/field_test/results_template.csv` the results sheet and `scripts/field_test_metrics.py`
+  the metrics (95% Wilson intervals).

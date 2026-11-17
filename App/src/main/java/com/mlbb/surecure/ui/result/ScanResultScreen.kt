@@ -2,6 +2,8 @@ package com.mlbb.surecure.ui.result
 
 import android.net.Uri
 import android.content.Intent
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import com.mlbb.surecure.data.repository.ScanHistoryRepository
 import com.mlbb.surecure.ui.dashboard.ScanHistoryEntry
@@ -44,13 +46,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.mlbb.surecure.ml.ClassifierResult
 import com.mlbb.surecure.ocr.CodePanelReader
-import com.mlbb.surecure.ocr.CodePanelReading
+import com.mlbb.surecure.ocr.CodePanelScan
 import com.mlbb.surecure.ocr.CodePanelText
 import com.mlbb.surecure.rules.FdaTables
 import com.mlbb.surecure.rules.PackDate
@@ -85,7 +88,7 @@ private sealed interface Phase {
 /** On-device reading of the code-panel photo; only ever pre-fills fields for the user to confirm. */
 private sealed interface OcrState {
     data object Reading : OcrState
-    data class Done(val reading: CodePanelReading) : OcrState
+    data class Done(val scan: CodePanelScan) : OcrState
     data object Failed : OcrState
 }
 
@@ -121,6 +124,10 @@ fun ScanResultScreen(
     // Every field the photo filled, kept after the user edits one, so a cleared field isn't "not found".
     var foundInPhoto by remember { mutableStateOf<Set<String>>(emptySet()) }
     var codesConfirmed by remember { mutableStateOf(false) }
+    // Barcode-first step: where a pre-filled barcode came from ("bars" or "digits"), until the user
+    // edits it or confirms it with "Check the barcode". Null when nothing was pre-filled.
+    var barcodeFromPhoto by remember { mutableStateOf<String?>(null) }
+    var barcodeStageFilled by remember { mutableStateOf(false) }
 
     // Stage 1 by photo: the photo model, or manual selection if it can't decide.
     fun identifyByPhoto() {
@@ -177,11 +184,25 @@ fun ScanResultScreen(
             OcrState.Failed
         }
     }
+    // Barcode-first step: pre-fill the barcode once, for the user to check before "Check the barcode".
+    val atBarcodeStep = phase is Phase.Barcode
+    LaunchedEffect(atBarcodeStep, ocr) {
+        val o = ocr
+        val read = (o as? OcrState.Done)?.scan
+        if (atBarcodeStep && !barcodeStageFilled && read != null) {
+            barcodeStageFilled = true
+            val code = read.reading.barcode
+            if (code != null && entry.barcode.isBlank()) {
+                entry = entry.copy(barcode = code)
+                barcodeFromPhoto = if (read.barcodeFromBars) "bars" else "digits"
+            }
+        }
+    }
     val atCodeStep = phase is Phase.Codes
     LaunchedEffect(atCodeStep, ocr) {
         val o = ocr
         if (atCodeStep && !ocrApplied && o is OcrState.Done) {
-            val p = ScanFlow.prefill(entry, o.reading)
+            val p = ScanFlow.prefill(entry, o.scan.reading)
             entry = p.entry
             fromPhoto = p.fromPhoto
             foundInPhoto = p.fromPhoto
@@ -210,8 +231,11 @@ fun ScanResultScreen(
                 codePanelPhoto = codePanelPhoto,
                 value = entry.barcode,
                 error = p.error,
-                onValueChange = { entry = entry.copy(barcode = it) },
+                fromPhoto = barcodeFromPhoto,
+                onValueChange = { entry = entry.copy(barcode = it); barcodeFromPhoto = null },
                 onCheck = {
+                    // Pressing "Check the barcode" is the user's confirmation of a pre-filled value.
+                    barcodeFromPhoto = null
                     val t = tables
                     if (t == null) {
                         identifyByPhoto()
@@ -231,7 +255,12 @@ fun ScanResultScreen(
                         )
                     }
                 },
-                onUsePhoto = { identifyByPhoto() },
+                onUsePhoto = {
+                    // An unconfirmed pre-filled barcode goes back to the code step, where it must be confirmed.
+                    if (barcodeFromPhoto != null) entry = entry.copy(barcode = "")
+                    barcodeFromPhoto = null
+                    identifyByPhoto()
+                },
             )
 
             is Phase.Product -> ProductStage(
@@ -247,6 +276,7 @@ fun ScanResultScreen(
                 codePanelPhoto = codePanelPhoto,
                 entry = entry,
                 ocr = ocr,
+                scan = (ocr as? OcrState.Done)?.scan,
                 photoApplied = ocrApplied,
                 foundInPhoto = foundInPhoto,
                 fromPhoto = fromPhoto,
@@ -295,19 +325,28 @@ private fun BarcodeStage(
     codePanelPhoto: Uri,
     value: String,
     error: String?,
+    /** "bars" or "digits" if [value] was read from the photo and not yet edited; null otherwise. */
+    fromPhoto: String?,
     onValueChange: (String) -> Unit,
     onCheck: () -> Unit,
     onUsePhoto: () -> Unit,
 ) {
-    Text("Type the barcode number", style = MaterialTheme.typography.titleMedium)
+    Text(
+        if (fromPhoto != null) "Check the barcode number" else "Type the barcode number",
+        style = MaterialTheme.typography.titleMedium
+    )
     Photo(codePanelPhoto, "Code panel photo")
+    val hint = error ?: fromPhoto?.let {
+        "Read from the ${if (it == "bars") "bars" else "printed digits"} in the photo. " +
+            "Check it matches the 13 digits under the bars."
+    }
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
         label = { Text("Barcode number (13 digits under the bars)") },
         singleLine = true,
         isError = error != null,
-        supportingText = error?.let { msg -> { Text(msg) } },
+        supportingText = hint?.let { msg -> { Text(msg) } },
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
         modifier = Modifier.fillMaxWidth()
     )
@@ -394,6 +433,8 @@ private fun CodeStage(
     codePanelPhoto: Uri,
     entry: ScanFlow.CodeEntry,
     ocr: OcrState,
+    /** What was read from the photo, for "Show what the phone read"; null until reading finishes. */
+    scan: CodePanelScan?,
     /** True once the photo's reading has been applied to the fields. */
     photoApplied: Boolean,
     /** Fields the photo filled, whether or not the user has edited them since. */
@@ -431,6 +472,27 @@ private fun CodeStage(
             style = MaterialTheme.typography.bodySmall
         )
         is OcrState.Done -> Unit
+    }
+    // The raw text, so the user can see why a field was or wasn't filled, and copy it (field tests).
+    if (scan != null) {
+        val context = LocalContext.current
+        var showText by remember { mutableStateOf(false) }
+        TextButton(onClick = { showText = !showText }) {
+            Text(if (showText) "Hide what the phone read" else "Show what the phone read")
+        }
+        if (showText) {
+            val report = buildString {
+                appendLine("Barcode from the bars: ${if (scan.barcodeFromBars) scan.reading.barcode else "none"}")
+                appendLine("Text lines:")
+                if (scan.lines.isEmpty()) appendLine("(no text found)")
+                scan.lines.forEach { appendLine(it) }
+            }.trimEnd()
+            Text(report, style = MaterialTheme.typography.bodySmall, fontFamily = FontFamily.Monospace)
+            TextButton(onClick = {
+                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                clipboard.setPrimaryClip(ClipData.newPlainText("SureCure code panel", report))
+            }) { Text("Copy this text") }
+        }
     }
     Text(
         "Leave a field blank if it isn't printed or you can't read it.",

@@ -19,6 +19,16 @@ data class CodePanelReading(
 )
 
 /**
+ * Everything read from the code-panel photo: the suggestions, the raw text lines (shown to the user
+ * on request, and the source of real-pack test cases), and whether the barcode came from the bars.
+ */
+data class CodePanelScan(
+    val reading: CodePanelReading,
+    val lines: List<String>,
+    val barcodeFromBars: Boolean,
+)
+
+/**
  * Pulls the barcode, lot, FDA registration number and dates out of recognized text lines.
  * Pure Kotlin (no Android imports) so it runs in JVM unit tests; CodePanelReader feeds it.
  */
@@ -29,6 +39,21 @@ object CodePanelText {
         'O' to '0', 'o' to '0', 'I' to '1', 'l' to '1', '|' to '1', 'S' to '5', 's' to '5',
         'B' to '8', 'Z' to '2', 'z' to '2',
     )
+
+    /**
+     * Combines the text reading with EAN-13 values decoded from the bars. The bars are more reliable
+     * than the printed digits, so one valid code from the bars replaces the digits' reading; codes
+     * failing the check digit are ignored; two different valid codes from the bars suggest neither.
+     */
+    fun scan(lines: List<String>, bars: List<String>): CodePanelScan {
+        val reading = read(lines)
+        val fromBars = bars.map { it.trim() }.filter(::ean13Valid).distinct()
+        return when (fromBars.size) {
+            0 -> CodePanelScan(reading, lines, barcodeFromBars = false)
+            1 -> CodePanelScan(reading.copy(barcode = fromBars[0]), lines, barcodeFromBars = true)
+            else -> CodePanelScan(reading.copy(barcode = null), lines, barcodeFromBars = false)
+        }
+    }
 
     fun read(lines: List<String>): CodePanelReading {
         val clean = lines.map { it.trim() }.filter { it.isNotEmpty() }
