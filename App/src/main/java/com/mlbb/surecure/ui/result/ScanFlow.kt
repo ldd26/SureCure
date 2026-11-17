@@ -2,6 +2,7 @@ package com.mlbb.surecure.ui.result
 
 import com.mlbb.surecure.ml.ClassifierResult
 import com.mlbb.surecure.ml.Recognition
+import com.mlbb.surecure.ocr.CodePanelReading
 import com.mlbb.surecure.rules.FdaTables
 import com.mlbb.surecure.rules.PackDate
 import com.mlbb.surecure.rules.ScanInput
@@ -75,6 +76,37 @@ object ScanFlow {
         val expiry: String = "",
         val manufactured: String = "",
     )
+
+    /** Field keys, shared by code-entry errors and fields pre-filled from the photo. */
+    const val FIELD_BARCODE = "barcode"
+    const val FIELD_LOT = "lot"
+    const val FIELD_REG_NO = "regNo"
+    const val FIELD_EXPIRY = "expiry"
+    const val FIELD_MANUFACTURED = "manufactured"
+
+    /** [entry] with OCR suggestions filled in, and the keys of the fields that came from the photo. */
+    data class Prefilled(val entry: CodeEntry, val fromPhoto: Set<String>)
+
+    /**
+     * Fills only blank fields, so nothing the user typed is overwritten. The user must still check
+     * every pre-filled field ([canCheck]); OCR never decides a verdict.
+     */
+    fun prefill(entry: CodeEntry, reading: CodePanelReading): Prefilled {
+        val filled = mutableSetOf<String>()
+        fun pick(key: String, current: String, suggested: String?): String =
+            if (current.isBlank() && !suggested.isNullOrBlank()) suggested.also { filled += key } else current
+        val next = CodeEntry(
+            barcode = pick(FIELD_BARCODE, entry.barcode, reading.barcode),
+            lot = pick(FIELD_LOT, entry.lot, reading.lot),
+            regNo = pick(FIELD_REG_NO, entry.regNo, reading.regNo),
+            expiry = pick(FIELD_EXPIRY, entry.expiry, reading.expiry),
+            manufactured = pick(FIELD_MANUFACTURED, entry.manufactured, reading.manufactured),
+        )
+        return Prefilled(next, filled)
+    }
+
+    /** "Check against FDA records" needs the user to confirm any field still holding a photo reading. */
+    fun canCheck(fromPhoto: Set<String>, userConfirmed: Boolean): Boolean = fromPhoto.isEmpty() || userConfirmed
 
     sealed interface Parsed {
         data class Ok(val scan: ScanInput) : Parsed
