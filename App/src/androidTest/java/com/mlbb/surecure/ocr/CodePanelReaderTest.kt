@@ -45,6 +45,22 @@ class CodePanelReaderTest {
         assertPanel(scan)
     }
 
+    @Test
+    fun readsASmallBarcodeInALargePhoto() {
+        // A 12 MP photo where the barcode fills only a small part of the frame (as in the
+        // 2026-11-19 phone test): 285 px wide at full resolution, about 142 px after downsampling,
+        // below the about 190 px ML Kit needs. The full-resolution centre retry must find it.
+        val photo = Bitmap.createBitmap(4032, 3024, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(photo)
+        canvas.drawColor(Color.rgb(90, 90, 100))
+        val panel = Paint().apply { color = Color.WHITE }
+        canvas.drawRect(1820f, 1350f, 2220f, 1650f, panel)
+        drawEan13(canvas, "4807788526762", left = 1874f, top = 1400f, module = 3f, height = 200f)
+        val scan = read(photo, exifOrientation = null)
+        assertEquals("barcode (lines: ${scan.lines})", "4807788526762", scan.reading.barcode)
+        assertTrue(scan.barcodeFromBars)
+    }
+
     private fun assertPanel(scan: CodePanelScan) {
         val text = scan.lines.joinToString(" | ")
         assertEquals("barcode (lines: $text)", "4807788526762", scan.reading.barcode)

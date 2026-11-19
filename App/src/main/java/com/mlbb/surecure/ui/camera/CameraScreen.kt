@@ -239,7 +239,8 @@ fun CameraScreen(
                     text = if (step == 0) {
                         "Keep the entire front of the package visible."
                     } else {
-                        "Include the barcode, lot number and expiry date."
+                        "Fill the frame with the pack's code panel: barcode, lot number and expiry " +
+                            "date. Hold steady and avoid glare."
                     },
                     color = Color.LightGray
                 )

@@ -235,6 +235,7 @@ fun ScanResultScreen(
                 codePanelPhoto = codePanelPhoto,
                 value = entry.barcode,
                 error = p.error,
+                ocr = ocr,
                 fromPhoto = barcodeFromPhoto,
                 onValueChange = { entry = entry.copy(barcode = it); barcodeFromPhoto = null },
                 onCheck = {
@@ -329,6 +330,7 @@ private fun BarcodeStage(
     codePanelPhoto: Uri,
     value: String,
     error: String?,
+    ocr: OcrState,
     /** "bars" or "digits" if [value] was read from the photo and not yet edited; null otherwise. */
     fromPhoto: String?,
     onValueChange: (String) -> Unit,
@@ -340,6 +342,23 @@ private fun BarcodeStage(
         style = MaterialTheme.typography.titleMedium
     )
     Photo(codePanelPhoto, "Code panel photo")
+    // Say what happened to the photo, so an empty field is never a mystery.
+    when {
+        ocr is OcrState.Reading -> Row(verticalAlignment = Alignment.CenterVertically) {
+            CircularProgressIndicator(modifier = Modifier.size(18.dp))
+            Spacer(Modifier.padding(start = 8.dp))
+            Text("Reading the barcode from the photo...", style = MaterialTheme.typography.bodySmall)
+        }
+        ocr is OcrState.Failed -> Text(
+            "The photo couldn't be read (${ocr.reason}). Type the barcode number.",
+            style = MaterialTheme.typography.bodySmall
+        )
+        ocr is OcrState.Done && fromPhoto == null && value.isBlank() -> Text(
+            "No barcode found in the photo. Type the 13 digits under the bars, or retake the photo " +
+                "with the barcode filling more of the frame.",
+            style = MaterialTheme.typography.bodySmall
+        )
+    }
     val hint = error ?: fromPhoto?.let {
         "Read from the ${if (it == "bars") "bars" else "printed digits"} in the photo. " +
             "Check it matches the 13 digits under the bars."

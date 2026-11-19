@@ -263,3 +263,12 @@ Existing files touched (glue only):
   Larger savings, each needing a team decision or more time: model in fp16 (about -21 MB; needs the
   golden test and a check of the energy threshold), a reduced-operator ONNX Runtime build (about
   -30 MB; long native build), compressed native libraries (smaller download, larger install).
+- **Barcode step and small barcodes (second Nov 19 screenshot).** The tester also tried a barcode
+  shown small on a laptop screen; the barcode step stayed empty and gave no reason. The step now
+  shows "Reading the barcode from the photo...", the failure reason, or "No barcode found in the
+  photo ... retake with the barcode filling more of the frame". If the downsampled photo shows no
+  valid EAN-13, the reader decodes the centre 60% of the photo at full resolution
+  (`BitmapRegionDecoder`, at most 2600 px per side) and scans the bars again, since a barcode
+  filling a small part of the frame drops below the about 190 px EAN-13 needs once downsampled.
+  Device test `readsASmallBarcodeInALargePhoto`. The camera hint for the second photo now says to
+  fill the frame with the code panel and avoid glare.

@@ -35,7 +35,8 @@ OCR text for `CodePanelTextTest`. Planned for 2026-11-18.
    If the app says "The photo couldn't be read (...)", copy the text in brackets into `notes`.
 
 Photograph the **real code panel** (the side or flap with the barcode, lot and expiry), filling
-most of the frame. A photo of text typed on another phone's screen tests the screen, not a pack:
+most of the frame. A barcode that covers only a small part of the photo, or one shown on a screen,
+may not be found. A photo of text typed on another phone's screen tests the screen, not a pack:
 screens add glare and moiré, and typed text has no "LOT" / "EXP" labels.
 
 Don't correct the app's pre-filled values before writing them down: the point is to measure them.
