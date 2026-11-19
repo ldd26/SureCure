@@ -152,7 +152,7 @@ cd SureCure
 
 **Run the app.** Open the folder in Android Studio, let Gradle sync, press ▶️. The model, the text-recognition model and all tables are bundled, so it works offline.
 
-**Build an APK.** `./gradlew :app:assembleDebug` writes one APK per CPU type to `App/build/outputs/apk/debug/`: `app-arm64-v8a-debug.apk` for almost every current phone, `app-armeabi-v7a-debug.apk` for older or Android Go phones, `app-x86_64-debug.apk` for the emulator. The arm64 APK is about 114 MB (armeabi-v7a about 98 MB, x86_64 about 122 MB), instead of one APK of about 250 MB carrying all of them.
+**Build an APK.** `./gradlew :app:assembleDebug` writes one APK per CPU type to `App/build/outputs/apk/debug/`: `app-arm64-v8a-debug.apk` for almost every current phone, `app-armeabi-v7a-debug.apk` for older or Android Go phones, `app-x86_64-debug.apk` for the emulator. The arm64 APK is about 114 MB (armeabi-v7a about 98 MB, x86_64 about 122 MB), instead of one APK of about 250 MB carrying all of them. A release build (`./gradlew :app:assembleRelease`) shrinks the code with R8: arm64 about 100 MB. Release APKs are signed with the local debug key for testing and the demo; publishing on Google Play needs a real release key. Uninstall a build from another computer before installing (each computer has its own debug key).
 
 **Run the tests**
 

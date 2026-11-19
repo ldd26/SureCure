@@ -8,9 +8,11 @@ OCR text for `CodePanelTextTest`. Planned for 2026-11-18.
 
 - 10 to 20 packs bought from drugstores. Mix boxes and blister strips, the 20 supported products and
   a few others, and if possible some packs that are expired or within 3 months of expiry.
-- One or more Android phones. Install `app-arm64-v8a-debug.apk` (most phones) or
-  `app-armeabi-v7a-debug.apk` (older or Android Go phones) from
-  `App/build/outputs/apk/debug/`.
+- One or more Android phones. Build with `./gradlew :app:assembleRelease` and install
+  `app-arm64-v8a-release.apk` (most phones) or `app-armeabi-v7a-release.apk` (older or Android Go
+  phones) from `App/build/outputs/apk/release/`. The release build is smaller (about 100 MB) and
+  runs smoother than the debug one. If an older SureCure is installed from another computer,
+  uninstall it first (each computer signs with its own debug key).
 - A copy of `data/field_test/results_template.csv` saved as `data/field_test/results.csv`
   (a spreadsheet is fine; keep the column names).
 
@@ -30,6 +32,11 @@ OCR text for `CodePanelTextTest`. Planned for 2026-11-18.
    if you can. These become test cases.
 5. Record the product the app showed (`product_shown`) and the verdict colour (`verdict`).
 6. Note anything odd in `notes`: wrong orientation, slow reading, crashes, wording that confused you.
+   If the app says "The photo couldn't be read (...)", copy the text in brackets into `notes`.
+
+Photograph the **real code panel** (the side or flap with the barcode, lot and expiry), filling
+most of the frame. A photo of text typed on another phone's screen tests the screen, not a pack:
+screens add glare and moiré, and typed text has no "LOT" / "EXP" labels.
 
 Don't correct the app's pre-filled values before writing them down: the point is to measure them.
 

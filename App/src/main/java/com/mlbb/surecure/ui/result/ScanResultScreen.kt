@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.util.Log
 import com.mlbb.surecure.data.repository.ScanHistoryRepository
 import com.mlbb.surecure.ui.dashboard.ScanHistoryEntry
 import com.mlbb.surecure.ui.dashboard.ScanSafety
@@ -89,7 +90,8 @@ private sealed interface Phase {
 private sealed interface OcrState {
     data object Reading : OcrState
     data class Done(val scan: CodePanelScan) : OcrState
-    data object Failed : OcrState
+    /** [reason] is shown to the user, so testers can report why reading failed. */
+    data class Failed(val reason: String) : OcrState
 }
 
 /**
@@ -178,10 +180,12 @@ fun ScanResultScreen(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            OcrState.Failed
+            Log.w("SureCure", "Code-panel reading failed", e)
+            OcrState.Failed("${e.javaClass.simpleName}: ${e.localizedMessage ?: "no details"}")
         } catch (e: OutOfMemoryError) {
             // A very large photo on a low-memory phone: fall back to typing instead of crashing.
-            OcrState.Failed
+            Log.w("SureCure", "Code-panel reading ran out of memory", e)
+            OcrState.Failed("out of memory")
         }
     }
     // Barcode-first step: pre-fill the barcode once, for the user to check before "Check the barcode".
@@ -467,8 +471,8 @@ private fun CodeStage(
             Spacer(Modifier.padding(start = 8.dp))
             Text("Reading the code panel...", style = MaterialTheme.typography.bodySmall)
         }
-        OcrState.Failed -> Text(
-            "The photo couldn't be read. Type the codes printed on the pack.",
+        is OcrState.Failed -> Text(
+            "The photo couldn't be read (${ocr.reason}). Type the codes printed on the pack.",
             style = MaterialTheme.typography.bodySmall
         )
         is OcrState.Done -> Unit

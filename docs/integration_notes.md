@@ -227,3 +227,39 @@ Existing files touched (glue only):
   capture real OCR text. `docs/field_test.md` is the test protocol,
   `data/field_test/results_template.csv` the results sheet and `scripts/field_test_metrics.py`
   the metrics (95% Wilson intervals).
+
+## Update (2026-11-19, first phone test)
+
+- **Every code-panel photo failed to read (fixed).** The tester saw "The photo couldn't be read"
+  on every scan. Cause: `CodePanelReader.decode` treated the `null` that
+  `BitmapFactory.decodeStream` returns by design for a size-only decode (`inJustDecodeBounds`) as
+  "can't open", so it threw before text recognition or barcode scanning ran (bug from #18; unit
+  tests can't reach Android decoding and it had never run on a device). The failure message now
+  includes the reason and is logged (tag `SureCure`).
+- **New device test** `CodePanelReaderTest` (androidTest): draws a code panel (labels and a real
+  EAN-13 barcode) into a JPEG and runs the reader on it upright and stored sideways with an EXIF
+  rotation tag. It would have caught the bug; run it on any phone with
+  `./gradlew :app:connectedDebugAndroidTest`.
+- **Codes printed without labels.** If no date is labelled, a line that is only a date is used: one
+  date is the expiry; two dates are manufacture (earlier) and expiry (later). If no lot is
+  labelled, a line holding a single code with 4+ digits that isn't the barcode, a date or a
+  registration number is used, only if it is the only such line.
+- **OCR engine.** The tester asked for a better OCR model. The failure was the bug above, not ML
+  Kit's accuracy, so ML Kit stays until it is measured on real packs. The models in the linked
+  thread (PaddleOCR-VL, GLM-OCR, MinerU, dots.ocr, olmOCR) are 0.9B to 7B-parameter document
+  VLMs: hundreds of MB to GBs, built for GPUs, so they conflict with offline phone use and app
+  size. The realistic on-device alternative is PP-OCRv5 mobile (about 5M parameters, Apache 2.0,
+  ONNX models of a few MB that run on the ONNX Runtime the app already ships). It would need
+  detection and recognition pre/post-processing written in Kotlin; candidate after the
+  presentation if ML Kit's real-pack read rate is poor.
+- **App size, measured 2026-11-19 (arm64).** Debug APK 114.0 MB: model 42.7 MB, ONNX Runtime
+  34.2 MB, app code (dex) 17.2 MB, ML Kit text recognition 11.1 MB, ML Kit barcode 5.0 MB, ML Kit
+  models 2.2 MB, resources 1.1 MB. The release build (R8 on `androidx`, `kotlin`, `kotlinx`, as
+  configured) shrinks the code to 3.7 MB: release APKs are arm64 99.6 MB, armeabi-v7a 83.5 MB,
+  x86_64 107.7 MB. Release builds are now signed with the local debug key (`signingConfig =
+  signingConfigs.getByName("debug")`) so they can be installed for testing and the demo; verified
+  with `apksigner` (v2 scheme, "CN=Android Debug"). Replace with a real release key before
+  publishing.
+  Larger savings, each needing a team decision or more time: model in fp16 (about -21 MB; needs the
+  golden test and a check of the energy threshold), a reduced-operator ONNX Runtime build (about
+  -30 MB; long native build), compressed native libraries (smaller download, larger install).

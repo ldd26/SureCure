@@ -62,9 +62,12 @@ object CodePanelReader {
     /** The photo, downsampled, and the clockwise rotation that makes it upright (from its EXIF tag). */
     private fun decode(context: Context, photo: Uri): Pair<Bitmap, Int> {
         val resolver = context.contentResolver
+        // Size only. decodeStream returns null by design here and fills in outWidth / outHeight,
+        // so its result must not be read as a failure (that bug made every photo fail before
+        // 2026-11-19).
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        resolver.openInputStream(photo)?.use { BitmapFactory.decodeStream(it, null, bounds) }
-            ?: throw IOException("Can't open $photo")
+        val boundsStream = resolver.openInputStream(photo) ?: throw IOException("Can't open $photo")
+        boundsStream.use { BitmapFactory.decodeStream(it, null, bounds) }
         val longSide = maxOf(bounds.outWidth, bounds.outHeight)
         if (longSide <= 0) throw IOException("Not an image: $photo")
         var sample = 1
