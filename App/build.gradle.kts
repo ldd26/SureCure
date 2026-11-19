@@ -21,6 +21,11 @@ android {
 
     buildTypes {
         release {
+            // Signed with the local debug key so the smaller R8 build can be installed for testing and
+            // the 2026-11-21 demo. Before publishing (Google Play), replace this with a real release key
+            // kept out of the repository. APKs from different machines have different debug keys, so
+            // uninstall the app before installing one built elsewhere.
+            signingConfig = signingConfigs.getByName("debug")
             optimization {
                 enable = true
                 packageScope = setOf("androidx.**", "kotlin.**", "kotlinx.**")

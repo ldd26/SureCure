@@ -58,13 +58,27 @@ object CodePanelText {
     fun read(lines: List<String>): CodePanelReading {
         val clean = lines.map { it.trim() }.filter { it.isNotEmpty() }
         val values = labelledValues(clean)
-        return CodePanelReading(
-            barcode = barcode(clean),
-            lot = lot(values[Field.LOT].orEmpty()),
-            regNo = regNo(clean),
-            expiry = date(values[Field.EXPIRY].orEmpty(), endOfMonth = true),
-            manufactured = date(values[Field.MFG].orEmpty(), endOfMonth = false),
-        )
+        val barcode = barcode(clean)
+        val regNo = regNo(clean)
+        var expiry = date(values[Field.EXPIRY].orEmpty(), endOfMonth = true)
+        var manufactured = date(values[Field.MFG].orEmpty(), endOfMonth = false)
+        // Unlabelled dates count only when no date is labelled at all: a labelled date's own value
+        // line also looks unlabelled.
+        if (expiry == null && manufactured == null) {
+            val dates = unlabelledDates(clean)
+            when (dates.size) {
+                1 -> expiry = dates[0].first
+                // A pack always expires after it is made: the later date is the expiry.
+                2 -> {
+                    val (early, late) = dates.sortedBy { it.second }
+                    expiry = late.first
+                    manufactured = early.first
+                }
+            }
+        }
+        val lot = lot(values[Field.LOT].orEmpty())
+            ?: if (values[Field.LOT].isNullOrEmpty()) unlabelledLot(clean, barcode) else null
+        return CodePanelReading(barcode, lot, regNo, expiry, manufactured)
     }
 
     /**
@@ -300,13 +314,53 @@ object CodePanelText {
         return found.firstOrNull()?.takeIf { first -> found.all { it.second == first.second } }?.first
     }
 
+    /** A date token list, cleaned: "MAR 2O28 SRP" -> ["MAR", "2028", "SRP"]. */
+    private fun dateParts(text: String): List<String> = tokens(text)
+        .map { it.trim('.', ',', ';', ':') }
+        .flatMap { tokens(expandCompactDate(it)) }
+        .map(::cleanDateToken)
+        .filter { it.isNotEmpty() }
+
+    /**
+     * Lines that are nothing but a date ("MAY 2030", "03/2028"), outside any label, with distinct
+     * dates only (compared by month, using the end of the month).
+     */
+    private fun unlabelledDates(lines: List<String>): List<Pair<String, PackDate>> {
+        val found = mutableListOf<Pair<String, PackDate>>()
+        for (raw in lines) {
+            val line = raw.uppercase(Locale.ROOT)
+            if (labelHits(line).isNotEmpty()) continue
+            val candidate = numericMonthYear(dateParts(line).joinToString(" "))
+            val date = PackDate.parsePrinted(candidate, endOfMonth = true) ?: continue
+            if (found.none { it.second.year == date.year && it.second.month == date.month }) found += candidate to date
+        }
+        return found
+    }
+
+    /**
+     * A lot printed without a label: a line holding one code with at least 4 digits that isn't the
+     * barcode, a date or a registration number. Suggested only if exactly one such line exists.
+     */
+    private fun unlabelledLot(lines: List<String>, barcode: String?): String? {
+        val found = linkedSetOf<String>()
+        for (raw in lines) {
+            val line = raw.uppercase(Locale.ROOT)
+            val t = tokens(line)
+            if (t.size != 1 || labelHits(line).isNotEmpty()) continue
+            val value = t[0].trim('.', ',', ';', ':')
+            if (!LOT_VALUE.matches(value) || value.count { it.isDigit() } < 4) continue
+            // Barcodes (and 12- to 14-digit misreads of one), dates and registration numbers aren't lots.
+            if (value == barcode || (value.all { it.isDigit() } && value.length in 12..14)) continue
+            if (PackDate.parsePrinted(numericMonthYear(dateParts(value).joinToString(" ")), true) != null) continue
+            if (REG.containsMatchIn(value)) continue
+            found += value
+        }
+        return found.singleOrNull()
+    }
+
     /** "MAR 2O28 SRP 25.00" -> "MAR 2028" with its parsed date, or null. */
     private fun dateIn(text: String, endOfMonth: Boolean): Pair<String, PackDate>? {
-        val parts = tokens(text)
-            .map { it.trim('.', ',', ';', ':') }
-            .flatMap { tokens(expandCompactDate(it)) }
-            .map(::cleanDateToken)
-            .filter { it.isNotEmpty() }
+        val parts = dateParts(text)
         for (k in minOf(parts.size, 4) downTo 1) {
             // Don't cut a date short: "03 15 2028" must not become "03 15".
             val next = parts.getOrNull(k)

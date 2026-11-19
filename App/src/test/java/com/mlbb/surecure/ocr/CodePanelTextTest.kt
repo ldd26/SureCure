@@ -297,4 +297,51 @@ class CodePanelTextTest {
         assertEquals(CodePanelText.read(lines), s.reading)
         assertEquals(lines, s.lines)
     }
+
+    // ------------------------------------------------------------------ codes printed without labels
+
+    @Test
+    fun unlabelledLotAndExpiryFromTheFieldTest() {
+        // The tester's 2026-11-19 sample: product name, lot and expiry, no labels.
+        val r = read("BIOGESIC", "26075401", "MAY 2030")
+        assertEquals("26075401", r.lot)
+        assertEquals("MAY 2030", r.expiry)
+        assertNull(r.manufactured)
+    }
+
+    @Test
+    fun twoUnlabelledDatesAreManufactureThenExpiry() {
+        val r = read("03/2025", "03/2028")
+        assertEquals("03/2028", r.expiry)
+        assertEquals("03/2025", r.manufactured)
+        // Order on the pack doesn't matter.
+        val s = read("MAR 2028", "MAR 2025")
+        assertEquals("MAR 2028", s.expiry)
+        assertEquals("MAR 2025", s.manufactured)
+    }
+
+    @Test
+    fun unlabelledDatesAreIgnoredWhenAnyDateIsLabelled() {
+        // "MAR 2025" alone would look like a second date; the labelled expiry wins, mfg stays empty.
+        val r = read("EXP. DATE", "MAR 2028", "MAR 2025")
+        assertEquals("MAR 2028", r.expiry)
+        assertNull(r.manufactured)
+        // Three different unlabelled dates: too ambiguous.
+        assertNull(read("01/2025", "06/2026", "03/2028").expiry)
+    }
+
+    @Test
+    fun unlabelledLotNeedsExactlyOneCandidate() {
+        assertNull(read("26075401", "88147000").lot)
+        // Not lots: the barcode, a 13-digit misread, a date, a registration number, a dose.
+        assertNull(read("4807788526762", "4807788526763", "032028", "DR-XY45182", "500MG").lot)
+        // A labelled lot always wins.
+        assertEquals("U066300", read("LOT NO. U066300", "26075401").lot)
+    }
+
+    @Test
+    fun unlabelledLineWithMoreThanACodeIsNotALot() {
+        assertNull(read("Paracetamol 500 mg", "Store below 30C").lot)
+        assertNull(read("PARACETAMOL", "BIOGESIC", "500 mg TABLET").lot)
+    }
 }
