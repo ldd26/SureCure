@@ -3,8 +3,11 @@ package com.mlbb.surecure.ui.camera
 import android.Manifest
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
@@ -24,14 +27,26 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import androidx.compose.runtime.saveable.rememberSaveable
+import java.time.Instant
+import java.util.UUID
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import java.io.File
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun CameraScreen(
     onBack: () -> Unit,
-    onPhotosCaptured: (Uri, Uri) -> Unit
+    onPhotosCaptured: (String, String, Uri, Uri?) -> Unit
 ) {
+    val scanId = rememberSaveable {
+        UUID.randomUUID().toString()
+    }
+
+    val scanStartedAtIso = rememberSaveable {
+        Instant.now().toString()
+    }
+
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
@@ -303,6 +318,8 @@ fun CameraScreen(
 
                                         if (savedFront != null) {
                                             onPhotosCaptured(
+                                                scanId,
+                                                scanStartedAtIso,
                                                 savedFront,
                                                 savedUri
                                             )

@@ -301,7 +301,7 @@ fun ScanResultScreen(
                         )
                         // NonCancellable: leaving the screen right away must not drop the save.
                         saveJob = scope.launch {
-                            withContext(NonCancellable) { saveToHistory(context, historyId, verdict) }
+                            withContext(NonCancellable) { saveToHistory(context, historyId, verdict, frontPhoto) }
                         }
                     }
                     else notice = "The FDA tables couldn't be loaded."
@@ -689,9 +689,12 @@ private fun Photo(uri: Uri, description: String) {
  * Saves the verdict to the dashboard's scan history. The history only has SAFE / UNSAFE, so green is
  * SAFE and red or amber are UNSAFE; the real level, product and reasons go into scanDetails.
  */
-internal suspend fun saveToHistory(context: Context, id: String, verdict: Verdict) {
+internal suspend fun saveToHistory(context: Context, id: String, verdict: Verdict, frontPhoto: Uri?) {
     val details = buildString {
-        append(ScanFlow.headline(verdict)).append(" (").append(verdict.level.name.lowercase()).append(")")
+        append(ScanFlow.headline(verdict))
+            .append(" (")
+            . append(verdict.level.name.lowercase())
+            .append(")")
         verdict.productChecked?.let { append(". Product: ").append(ScanFlow.displayName(it)) }
         append(". ").append(verdict.reasons.joinToString(" "))
     }
@@ -702,6 +705,7 @@ internal suspend fun saveToHistory(context: Context, id: String, verdict: Verdic
                 safety = if (verdict.level == VerdictLevel.GREEN) ScanSafety.SAFE else ScanSafety.UNSAFE,
                 scannedOn = Instant.now(),
                 scanDetails = details,
+                frontPhotoUri = frontPhoto.toString(),
             )
         )
     }

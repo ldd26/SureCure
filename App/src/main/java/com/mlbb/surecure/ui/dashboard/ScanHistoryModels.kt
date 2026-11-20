@@ -15,7 +15,8 @@ import java.util.Locale
  */
 enum class ScanSafety {
     SAFE,
-    UNSAFE
+    UNSAFE,
+    NEEDS_REVIEW
 }
 
 data class ScanHistoryEntry(
@@ -23,7 +24,8 @@ data class ScanHistoryEntry(
     val safety: ScanSafety,
     val scannedOn: Instant,
     val scanDetails: String = "",
-    @DrawableRes val thumbnailResId: Int = R.drawable.test_thumbnail,
+    val frontPhotoUri: String? = null,
+    val codePanelPhotoUri: String? = null
 )
 
 /**

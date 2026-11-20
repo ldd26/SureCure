@@ -139,6 +139,7 @@ data class ScanInput(
     val regNo: String? = null,
     val mfgDate: PackDate? = null,
     val expDate: PackDate? = null,
+    val frontPhotoUri: String? = null,
 )
 
 data class Verdict(
@@ -148,6 +149,7 @@ data class Verdict(
     val productChecked: String?,
     /** True if the lot exactly matched a counterfeit lot listed for this product (the red lot rule). Kotlin-only addition. */
     val counterfeitLotMatch: Boolean = false,
+    val thumbnailUri: String? = null,
 ) {
     val message: String get() = level.headline
 }
@@ -259,5 +261,5 @@ fun verify(scan: ScanInput, tables: FdaTables, today: PackDate = PackDate.today(
 
     if (hits.isEmpty()) return Verdict(VerdictLevel.GREEN, listOf("All checks passed."), product)
     val sorted = hits.sortedByDescending { it.first.ordinal }  // stable, like Python's sort
-    return Verdict(sorted[0].first, sorted.map { it.second }, product, lotMatch)
+    return Verdict(sorted[0].first, sorted.map { it.second }, product, lotMatch, thumbnailUri = scan.frontPhotoUri)
 }

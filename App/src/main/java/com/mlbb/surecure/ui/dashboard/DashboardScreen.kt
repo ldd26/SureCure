@@ -41,6 +41,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mlbb.surecure.util.formatScanDate
 
+import coil.compose.AsyncImage
+import androidx.compose.ui.res.painterResource
+
 private val SureCureMint = Color(0xFFDEFFE8)
 private val SureCureDarkGreen = Color(0xFF02542D)
 private val SureCureGreen = Color(0xFF14AE5C)
@@ -238,15 +241,23 @@ private fun ScanHistoryRow(
 
 @Composable
 private fun MedicineThumbnail(entry: ScanHistoryEntry) {
-    Image(
-        painter = painterResource(
-            id = entry.thumbnailResId
-        ),
-        contentDescription = "Medicine package thumbnail",
-        contentScale = ContentScale.Crop,
-        modifier = Modifier
-            .size(width = 58.dp, height = 48.dp)
-            .clip(RoundedCornerShape(7.dp))
+//    Image(
+//        painter = painterResource(
+//            id = entry.
+//        ),
+//        contentDescription = "Medicine package thumbnail",
+//        contentScale = ContentScale.Crop,
+//        modifier = Modifier
+//            .size(width = 58.dp, height = 48.dp)
+//            .clip(RoundedCornerShape(7.dp))
+//    )
+    AsyncImage(
+        model = entry.frontPhotoUri,
+        contentDescription = "Medicine thumbnail",
+        placeholder = painterResource(R.drawable.test_thumbnail),
+        error = painterResource(R.drawable.test_thumbnail),
+        modifier = Modifier.size(64.dp),
+        contentScale = ContentScale.Crop
     )
 }
 
