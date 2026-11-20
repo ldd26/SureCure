@@ -272,3 +272,19 @@ Existing files touched (glue only):
   filling a small part of the frame drops below the about 190 px EAN-13 needs once downsampled.
   Device test `readsASmallBarcodeInALargePhoto`. The camera hint for the second photo now says to
   fill the frame with the code panel and avoid glare.
+
+## Update (2026-11-20, real pack OCR)
+
+- **First real OCR text** (tester, Neozep Forte blister strip, transcribed from the tester's
+  screenshot of "Show what the phone read"): saved in `data/field_test/ocr/` and used as a test
+  case. Nothing was filled because the strip prints lot and expiry together without labels
+  ("26076601 MAY 2029", repeated about five times) and ML Kit misread "MAY" as "NAY" or "MNY".
+  A cetirizine pack read its expiry correctly.
+- **Extraction changes.** A lot and a date on one unlabelled line are split (either order). A
+  three-letter word one letter from exactly one month, just before a year, is read as that month
+  ("NAY 2029" and "MNY 22" as MAY; words such as "SRP" are excluded). Repeated values are
+  majority-voted: the value read strictly more often than any other wins, a tie still fills nothing
+  (so "two different values suggest neither" holds when each is read once). 4 new tests,
+  including the tester's text.
+- **Accessibility idea from the tester.** "Show what the phone read" also helps people with low
+  vision read small print; worth a line in the presentation.
