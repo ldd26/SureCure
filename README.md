@@ -6,6 +6,11 @@
 
 *An offline Android screener for counterfeit over-the-counter medicines in the Philippines*
 
+## Demo
+<p align="center">
+  <img src="docs/Screenrecorder-2026-11-21-00-28-23-82.gif" alt="SureCure scanning a medicine pack" width="300">
+</p>
+
 <br />
 
 <img alt="Platform" src="https://img.shields.io/badge/platform-Android%207.0%2B-3DDC84?logo=android&logoColor=white&style=flat" />
