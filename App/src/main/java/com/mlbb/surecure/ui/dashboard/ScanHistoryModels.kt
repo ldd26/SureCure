@@ -10,13 +10,27 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 /**
- * Demo data models for the dashboard's scan history.
- * Replace the sample entries with records from your repository/database later.
+ * Scan-history models for the dashboard. Entries are saved by ScanResultScreen.saveToHistory and read
+ * by ScanHistoryRepository from filesDir/scan_history.json.
  */
 enum class ScanSafety {
+    /** Green: no match with FDA counterfeit records. */
     SAFE,
+    /** Red: flagged, check with FDA. */
     UNSAFE,
-    NEEDS_REVIEW
+    /** Amber: couldn't fully verify (amber was saved as UNSAFE before 2026-11-20). */
+    NEEDS_REVIEW;
+
+    companion object {
+        /**
+         * The saved level, tolerant of older entries: before 2026-11-20 amber was stored as UNSAFE with
+         * "(amber)" in its details, so those read back as NEEDS_REVIEW. An unknown name reads as UNSAFE.
+         */
+        fun fromStored(name: String, details: String): ScanSafety {
+            val saved = entries.firstOrNull { it.name == name } ?: return UNSAFE
+            return if (saved == UNSAFE && "(amber)" in details) NEEDS_REVIEW else saved
+        }
+    }
 }
 
 data class ScanHistoryEntry(

@@ -10,7 +10,7 @@ OCR text for `CodePanelTextTest`. Planned for 2026-11-18.
   a few others, and if possible some packs that are expired or within 3 months of expiry.
 - One or more Android phones. Build with `./gradlew :app:assembleRelease` and install
   `app-arm64-v8a-release.apk` (most phones) or `app-armeabi-v7a-release.apk` (older or Android Go
-  phones) from `App/build/outputs/apk/release/`. The release build is smaller (about 100 MB) and
+  phones) from `App/build/outputs/apk/release/`. The release build (about 108 MB) is the one shared with testers and
   runs smoother than the debug one. If an older SureCure is installed from another computer,
   uninstall it first (each computer signs with its own debug key).
 - A copy of `data/field_test/results_template.csv` saved as `data/field_test/results.csv`

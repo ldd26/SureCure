@@ -10,6 +10,7 @@ import com.mlbb.surecure.rules.Verdict
 import com.mlbb.surecure.rules.VerdictLevel
 import com.mlbb.surecure.rules.ean13Valid
 import com.mlbb.surecure.rules.productForBarcode
+import com.mlbb.surecure.ui.dashboard.ScanSafety
 
 /**
  * Logic behind the scan-result flow (Figure 1, stages 1 to 3), kept free of Compose so it can
@@ -218,6 +219,13 @@ object ScanFlow {
         val doy = (153 * mp + 2) / 5 + d.day - 1
         val doe = yoe * 365 + yoe / 4 - yoe / 100 + doy
         return era * 146097L + doe - 719468
+    }
+
+    /** The scan-history level: green SAFE, amber NEEDS_REVIEW, red UNSAFE. */
+    fun historySafety(verdict: Verdict): ScanSafety = when (verdict.level) {
+        VerdictLevel.GREEN -> ScanSafety.SAFE
+        VerdictLevel.AMBER -> ScanSafety.NEEDS_REVIEW
+        VerdictLevel.RED -> ScanSafety.UNSAFE
     }
 
     /** "Find a nearby drugstore" is offered when the result isn't green. */

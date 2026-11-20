@@ -1,58 +1,37 @@
 package com.mlbb.surecure.ui.theme
 
-import android.app.Activity
-import android.os.Build
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.Modifier
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.graphics.Color
 
-private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
-)
-
-private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
-
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
+/**
+ * SureCure's colours. Always light and never wallpaper-based ("dynamic colour"): the screens and the
+ * dashboard design are light, and verdict colours (green, amber, red) must look the same on every
+ * phone. Before 2026-11-20 the theme followed system dark mode, which made typed text hard to read on
+ * the light screens, and Android 12+ retinted buttons to the wallpaper.
+ */
+private val SureCureColors = lightColorScheme(
+    primary = SureCureGreen,
     onPrimary = Color.White,
+    primaryContainer = SureCureMint,
+    onPrimaryContainer = SureCureDarkGreen,
+    secondary = SureCureDarkGreen,
     onSecondary = Color.White,
-    onTertiary = Color.White,
+    error = SureCureRed,
+    background = Color.White,
     onBackground = Color(0xFF1C1B1F),
+    surface = Color.White,
     onSurface = Color(0xFF1C1B1F),
-    */
 )
 
 @Composable
-fun SureCureTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
-    content: @Composable () -> Unit
-) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
+fun SureCureTheme(content: @Composable () -> Unit) {
+    MaterialTheme(colorScheme = SureCureColors, typography = Typography) {
+        // A background and content colour for every screen.
+        Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background, content = content)
     }
-
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        content = content
-    )
 }

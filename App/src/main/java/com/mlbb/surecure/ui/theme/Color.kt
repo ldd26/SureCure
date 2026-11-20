@@ -2,10 +2,15 @@ package com.mlbb.surecure.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-val Purple80 = Color(0xFFD0BCFF)
-val PurpleGrey80 = Color(0xFFCCC2DC)
-val Pink80 = Color(0xFFEFB8C8)
+// SureCure brand palette, used by every screen (previously copied privately into each screen).
+val SureCureGreen = Color(0xFF14AE5C)
+val SureCureDarkGreen = Color(0xFF02542D)
+val SureCureMint = Color(0xFFDEFFE8)
+val SureCureRed = Color(0xFFC00F0C)
+val SureCureAmber = Color(0xFFB26A00)
+val SureCureGray = Color(0xFF757575)
 
-val Purple40 = Color(0xFF6650a4)
-val PurpleGrey40 = Color(0xFF625b71)
-val Pink40 = Color(0xFF7D5260)
+// Verdict backgrounds.
+val GreenBackground = SureCureMint
+val RedBackground = Color(0xFFFFE8E8)
+val AmberBackground = Color(0xFFFFF3DC)

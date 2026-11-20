@@ -13,8 +13,8 @@ android {
         applicationId = "com.mlbb.surecure"
         minSdk = 24
         targetSdk = 37
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 4
+        versionName = "1.0.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -26,9 +26,12 @@ android {
             // kept out of the repository. APKs from different machines have different debug keys, so
             // uninstall the app before installing one built elsewhere.
             signingConfig = signingConfigs.getByName("debug")
+            // R8 off. With optimization limited to androidx/kotlin/kotlinx (packageScope), R8 moved a
+            // subclass of a package-private kotlin.collections class into another package, and every
+            // release APK crashed at launch (IllegalAccessError in androidx.startup, 2026-11-20 demo
+            // build). Re-enable only for the whole app, with keep rules, after testing on a device.
             optimization {
-                enable = true
-                packageScope = setOf("androidx.**", "kotlin.**", "kotlinx.**")
+                enable = false
             }
         }
     }
