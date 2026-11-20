@@ -1,9 +1,8 @@
 package com.mlbb.surecure.ui.navigation
 
 import android.net.Uri
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -83,9 +82,7 @@ fun AppNavHost() {
                     }
                 )
             } else {
-                Text(
-                    text = "The captured photos could not be loaded.",
-                )
+                PhotosMissing()
             }
         }
 
@@ -124,10 +121,17 @@ fun AppNavHost() {
                     }
                 )
             } else {
-                Text(
-                    text = "The captured photos could not be loaded.",
-                )
+                PhotosMissing()
             }
         }
     }
+}
+
+/** Shown if the camera's photo addresses were lost (for example after the app was closed mid-scan). */
+@Composable
+private fun PhotosMissing() {
+    Text(
+        text = "The captured photos could not be loaded. Go back and take them again.",
+        modifier = Modifier.safeDrawingPadding().padding(20.dp),
+    )
 }

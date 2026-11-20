@@ -1,17 +1,15 @@
 package com.mlbb.surecure.ui.camera
 
 import android.net.Uri
-import android.widget.ImageView
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
+import com.mlbb.surecure.ui.components.PhotoThumbnail
 
 @Composable
 fun PhotoReviewScreen(
@@ -20,9 +18,15 @@ fun PhotoReviewScreen(
     onRetake: () -> Unit,
     onDone: () -> Unit
 ) {
+    // Below the status bar and above the home bar; width capped on tablets and in landscape.
+    Box(
+        modifier = Modifier.fillMaxSize().safeDrawingPadding(),
+        contentAlignment = Alignment.TopCenter
+    ) {
     Column(
         modifier = Modifier
-            .fillMaxSize()
+            .widthIn(max = 640.dp)
+            .fillMaxWidth()
             .verticalScroll(rememberScrollState())
             .padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -71,6 +75,7 @@ fun PhotoReviewScreen(
             style = MaterialTheme.typography.bodySmall
         )
     }
+    }
 }
 
 @Composable
@@ -78,21 +83,11 @@ private fun CapturedPhoto(
     uri: Uri,
     contentDescription: String
 ) {
-    AndroidView(
-        factory = { context ->
-            ImageView(context).apply {
-                scaleType = ImageView.ScaleType.FIT_CENTER
-                setImageURI(uri)
-                this.contentDescription = contentDescription
-            }
-        },
-        update = { imageView ->
-            imageView.setImageURI(uri)
-            imageView.contentDescription = contentDescription
-        },
+    PhotoThumbnail(
+        uri = uri,
+        contentDescription = contentDescription,
         modifier = Modifier
             .fillMaxWidth()
             .height(240.dp)
-            .clip(RoundedCornerShape(12.dp))
     )
 }

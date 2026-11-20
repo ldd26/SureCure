@@ -1,13 +1,10 @@
 package com.mlbb.surecure.ui.dashboard
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.Image
 import com.mlbb.surecure.R
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -17,8 +14,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
@@ -29,32 +28,30 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mlbb.surecure.util.formatScanDate
-
-private val SureCureMint = Color(0xFFDEFFE8)
-private val SureCureDarkGreen = Color(0xFF02542D)
-private val SureCureGreen = Color(0xFF14AE5C)
-private val SureCureGray = Color(0xFF757575)
-private val SureCureRed = Color(0xFFC00F0C)
-private val UnsafeRowBackground = Color(0xFFFFE8E8)
+import com.mlbb.surecure.ui.components.CameraButton
+import com.mlbb.surecure.ui.theme.RedBackground
+import com.mlbb.surecure.ui.theme.SureCureDarkGreen
+import com.mlbb.surecure.ui.theme.SureCureGray
+import com.mlbb.surecure.ui.theme.SureCureGreen
+import com.mlbb.surecure.ui.theme.SureCureMint
+import com.mlbb.surecure.ui.theme.SureCureRed
 
 /**
- * Native Jetpack Compose version of the dashboard exported from Figma.
+ * The home screen: brand header, scan history (from ScanHistoryRepository, grouped by month) and the
+ * camera button that starts a scan.
  *
- * @param onCameraClick Called when the user taps the green camera button. Connect this
- * to your navigation flow (for example, navigate to CaptureScreen).
- * @param onScanClick Optional callback for a scan-history row.
- * @param sections Data to display. Defaults to sample content matching the HTML export.
+ * @param onCameraClick Called when the user taps the green camera button.
+ * @param onScanClick Called when the user taps a scan-history row.
+ * @param sections Scan history to show, newest month first.
  */
 @Composable
 fun DashboardScreen(
@@ -74,6 +71,8 @@ fun DashboardScreen(
 
         Column(
             modifier = Modifier
+                // Capped width so rows don't stretch across tablets and landscape screens.
+                .widthIn(max = 640.dp)
                 .fillMaxWidth()
                 .weight(1f)
                 .verticalScroll(rememberScrollState())
@@ -110,16 +109,14 @@ fun DashboardScreen(
 
 
         Row(
-            modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp),
+            // Above the home bar / navigation buttons (the app draws edge to edge).
+            modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(top = 8.dp, bottom = 16.dp),
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Spacer(modifier = Modifier.width(64.dp))
 
-            // Replace CameraButton with your existing camera button composable.
-            CameraButton(
-                onClick = onCameraClick,
-            )
+            CameraButton(onClick = onCameraClick, contentDescription = "Scan a medicine")
 
             Spacer(modifier = Modifier.width(8.dp))
 
@@ -149,28 +146,36 @@ private fun BrandHeader() {
         modifier = Modifier
             .fillMaxWidth()
             .background(SureCureMint)
-            .padding(horizontal = 20.dp, vertical = 25.dp),
+            // The mint header runs under the status bar; its content stays below it.
+            .statusBarsPadding()
+            .padding(horizontal = 20.dp, vertical = 20.dp),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
         BrandMark()
         Spacer(modifier = Modifier.width(7.dp))
+        // The wordmark is a logo: its size is fixed in dp so large font settings can't push it off
+        // narrow screens.
+        val wordmark = with(LocalDensity.current) { 39.dp.toSp() }
+        val wordmarkLine = with(LocalDensity.current) { 47.dp.toSp() }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = "Sure",
                 color = SureCureDarkGreen,
-                fontSize = 39.sp,
-                lineHeight = 47.sp,
+                fontSize = wordmark,
+                lineHeight = wordmarkLine,
                 fontWeight = FontWeight.Bold,
-                letterSpacing = (-1.2).sp
+                letterSpacing = (-1.2).sp,
+                maxLines = 1
             )
             Text(
                 text = "Cure",
                 color = SureCureGreen,
-                fontSize = 39.sp,
-                lineHeight = 47.sp,
+                fontSize = wordmark,
+                lineHeight = wordmarkLine,
                 fontWeight = FontWeight.Bold,
-                letterSpacing = (-1.2).sp
+                letterSpacing = (-1.2).sp,
+                maxLines = 1
             )
         }
     }
@@ -196,7 +201,7 @@ private fun ScanHistoryRow(
 ) {
     val isSafe = entry.safety == ScanSafety.SAFE
     val statusColor = if (isSafe) SureCureGreen else SureCureRed
-    val rowBackground = if (isSafe) Color.Transparent else UnsafeRowBackground
+    val rowBackground = if (isSafe) Color.Transparent else RedBackground
 
     Row(
         modifier = Modifier
@@ -248,48 +253,4 @@ private fun MedicineThumbnail(entry: ScanHistoryEntry) {
             .size(width = 58.dp, height = 48.dp)
             .clip(RoundedCornerShape(7.dp))
     )
-}
-
-@Composable
-private fun CameraButton(onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .size(64.dp)
-            .clip(CircleShape)
-            .background(SureCureGreen)
-            .border(width = 1.dp, color = Color.Black, shape = CircleShape)
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center
-    ) {
-        CameraGlyph()
-    }
-}
-
-/**
- * An imported glyph function that draws a Camera symbol.
- */
-@Composable
-private fun CameraGlyph() {
-    Canvas(modifier = Modifier.size(29.dp)) {
-        val stroke = size.width * 0.075f
-        drawRoundRect(
-            color = Color.White,
-            topLeft = Offset(size.width * 0.08f, size.height * 0.28f),
-            size = Size(size.width * 0.84f, size.height * 0.58f),
-            cornerRadius = androidx.compose.ui.geometry.CornerRadius(size.width * 0.09f),
-            style = Stroke(width = stroke)
-        )
-        drawRoundRect(
-            color = Color.White,
-            topLeft = Offset(size.width * 0.26f, size.height * 0.15f),
-            size = Size(size.width * 0.28f, size.height * 0.18f),
-            cornerRadius = androidx.compose.ui.geometry.CornerRadius(size.width * 0.04f)
-        )
-        drawCircle(
-            color = Color.White,
-            radius = size.width * 0.15f,
-            center = Offset(size.width * 0.50f, size.height * 0.57f),
-            style = Stroke(width = stroke)
-        )
-    }
 }

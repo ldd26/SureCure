@@ -10,8 +10,8 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 /**
- * Demo data models for the dashboard's scan history.
- * Replace the sample entries with records from your repository/database later.
+ * Scan-history models for the dashboard. Entries are saved by ScanResultScreen.saveToHistory and read
+ * by ScanHistoryRepository from filesDir/scan_history.json.
  */
 enum class ScanSafety {
     SAFE,

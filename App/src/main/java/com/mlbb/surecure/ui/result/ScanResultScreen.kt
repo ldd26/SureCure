@@ -11,14 +11,16 @@ import com.mlbb.surecure.ui.dashboard.ScanHistoryEntry
 import com.mlbb.surecure.ui.dashboard.ScanSafety
 import java.time.Instant
 import java.util.UUID
-import android.widget.ImageView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -45,14 +47,20 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
 import com.mlbb.surecure.ml.ClassifierResult
+import com.mlbb.surecure.ui.components.PhotoThumbnail
+import com.mlbb.surecure.ui.theme.AmberBackground
+import com.mlbb.surecure.ui.theme.GreenBackground
+import com.mlbb.surecure.ui.theme.RedBackground
+import com.mlbb.surecure.ui.theme.SureCureAmber
+import com.mlbb.surecure.ui.theme.SureCureDarkGreen
+import com.mlbb.surecure.ui.theme.SureCureGreen
+import com.mlbb.surecure.ui.theme.SureCureRed
 import com.mlbb.surecure.ocr.CodePanelReader
 import com.mlbb.surecure.ocr.CodePanelScan
 import com.mlbb.surecure.ocr.CodePanelText
@@ -68,14 +76,6 @@ import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-// Same values as the dashboard's brand colors (private there).
-private val SureCureGreen = Color(0xFF14AE5C)
-private val SureCureDarkGreen = Color(0xFF02542D)
-private val SureCureRed = Color(0xFFC00F0C)
-private val SureCureAmber = Color(0xFFB26A00)
-private val GreenBackground = Color(0xFFDEFFE8)
-private val RedBackground = Color(0xFFFFE8E8)
-private val AmberBackground = Color(0xFFFFF3DC)
 
 private sealed interface Phase {
     data object Loading : Phase
@@ -214,9 +214,12 @@ fun ScanResultScreen(
         }
     }
 
+    // Below the status bar and above the home bar and keyboard; width capped on tablets and in landscape.
+    Box(modifier = Modifier.fillMaxSize().safeDrawingPadding(), contentAlignment = Alignment.TopCenter) {
     Column(
         modifier = Modifier
-            .fillMaxSize()
+            .widthIn(max = 640.dp)
+            .fillMaxWidth()
             .verticalScroll(rememberScrollState())
             .padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -320,6 +323,7 @@ fun ScanResultScreen(
 
             is Phase.Nearby -> NearbyDrugstores(onBack = { phase = p.result })
         }
+    }
     }
 }
 
@@ -669,20 +673,7 @@ private fun VerdictStage(
 
 @Composable
 private fun Photo(uri: Uri, description: String) {
-    AndroidView(
-        factory = { ctx ->
-            ImageView(ctx).apply {
-                scaleType = ImageView.ScaleType.FIT_CENTER
-                setImageURI(uri)
-                contentDescription = description
-            }
-        },
-        update = { it.setImageURI(uri) },
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(220.dp)
-            .clip(RoundedCornerShape(12.dp))
-    )
+    PhotoThumbnail(uri = uri, contentDescription = description, modifier = Modifier.fillMaxWidth().height(220.dp))
 }
 
 /**

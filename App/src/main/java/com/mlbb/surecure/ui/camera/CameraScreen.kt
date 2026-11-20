@@ -21,10 +21,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.mlbb.surecure.ui.components.CameraButton
 import java.io.File
 
 @Composable
@@ -186,10 +188,11 @@ fun CameraScreen(
 
                     // Visual alignment guide. This does not crop
                     // the saved photograph.
+                    // Sized to the preview, not a fixed height, so it fits short and tall screens.
                     Box(
                         modifier = Modifier
                             .fillMaxWidth(0.86f)
-                            .height(300.dp)
+                            .fillMaxHeight(0.72f)
                             .border(
                                 width = 2.dp,
                                 color = Color.White,
@@ -232,7 +235,8 @@ fun CameraScreen(
                 Text(
                     text = title,
                     style = MaterialTheme.typography.titleMedium,
-                    color = Color.White
+                    color = Color.White,
+                    textAlign = TextAlign.Center
                 )
 
                 Text(
@@ -242,7 +246,8 @@ fun CameraScreen(
                         "Fill the frame with the pack's code panel: barcode, lot number and expiry " +
                             "date. Hold steady and avoid glare."
                     },
-                    color = Color.LightGray
+                    color = Color.LightGray,
+                    textAlign = TextAlign.Center
                 )
 
                 errorMessage?.let {
@@ -252,10 +257,11 @@ fun CameraScreen(
                     )
                 }
 
-                Button(
+                // The heading above says which photo this is, so the button is just the camera.
+                CameraButton(
                     onClick = {
                         val capture = imageCapture
-                            ?: return@Button
+                            ?: return@CameraButton
 
                         val capturedStep = step
                         isCapturing = true
@@ -326,17 +332,11 @@ fun CameraScreen(
                             }
                         )
                     },
-                    enabled = cameraReady && !isCapturing,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        when {
-                            isCapturing -> "Capturing..."
-                            step == 0 -> "Capture front image"
-                            else -> "Capture code panel"
-                        }
-                    )
-                }
+                    contentDescription = if (step == 0) "Take the front photo" else "Take the code panel photo",
+                    enabled = cameraReady,
+                    busy = isCapturing,
+                    size = 76.dp,
+                )
 
                 if (step == 1) {
                     TextButton(
