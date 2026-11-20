@@ -302,3 +302,10 @@ Existing files touched (glue only):
   already tested on phones. Re-enable R8 only for the whole app, with keep rules, after a device test.
 - **Download:** GitHub release `v1.0-demo` on ldd26/SureCure; the QR code in `docs/media/` points at
   `releases/download/v1.0-demo/SureCure.apk`, so replacing the file keeps the QR valid.
+- **Portrait lock removed (1.0.2).** After 1.0.1, a tester's Xiaomi tablet sent Biogesic, which it had
+  recognised before, straight to the full product list (the model rejected the photo; no error).
+  The only capture-related change since the working build was `screenOrientation="portrait"`: on a
+  tablet whose natural orientation is landscape, the forced-portrait (letterboxed) window can make
+  the camera save photos rotated 90 degrees, and the model was not trained on sideways packs. The lock
+  is removed; rotating mid-scan loses the scan again (known open item). Not yet confirmed on the
+  tablet.
