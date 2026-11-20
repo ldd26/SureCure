@@ -344,4 +344,60 @@ class CodePanelTextTest {
         assertNull(read("Paracetamol 500 mg", "Store below 30C").lot)
         assertNull(read("PARACETAMOL", "BIOGESIC", "500 mg TABLET").lot)
     }
+
+    // ------------------------------------------------------------------ real packs
+
+    /**
+     * Real ML Kit output from a Neozep Forte blister strip (field test, 2026-11-19), copied with
+     * "Show what the phone read". The strip repeats "lot expiry" without labels, and "MAY" is
+     * sometimes read as "NAY" or "MNY".
+     */
+    private val neozepForteStrip = listOf(
+        "RRERYEEPARN", "LORPENAMINEAUEATE", "PARACETAMOL + ZING", "NeozepZ+ Forte",
+        "10mgl2 mg 25 mg / 10 mg Tablet", "26076601 MAY 2029", "UNILAD", "RSENYLEPHRINE NCA",
+        "CHORPHENAMINE MALEATB", "RKACET7", "HTAMOL+ ZNC", "NeOzepZ+ Forte",
+        "10 mg2 mg/ 5 mg / 10 mg Tablet", "26076601 NAY 2029", "NeoiepL+ Forte", "26076601 NAY 2029",
+        "PRERYTERNNE", "LORPENAMNE AEAR", "PARACETAMOL +ZINt", "NeOZepZ+ Forte",
+        "10 mg /2 mg /325 mg / 10 mg lahlet", "26076601 MAY 2029", "PHENYLEPNRINE NC)",
+        "CHLORPHENAMINE MALEATE", "PARACETAMOL + ZING", "NeozepZ+ Forte", "26076601 NA 2029",
+        "ten7 Forte", "Wvepfote", "01 MNY 22",
+    )
+
+    @Test
+    fun neozepForteStripFromTheFieldTest() {
+        assertEquals(
+            CodePanelReading(barcode = null, lot = "26076601", regNo = null, expiry = "MAY 2029", manufactured = null),
+            CodePanelText.read(neozepForteStrip),
+        )
+    }
+
+    @Test
+    fun lotAndExpiryOnOneUnlabelledLine() {
+        val r = read("26076601 MAY 2029")
+        assertEquals("26076601", r.lot)
+        assertEquals("MAY 2029", r.expiry)
+        // Either order.
+        val s = read("03/2028 A24B0912")
+        assertEquals("A24B0912", s.lot)
+        assertEquals("03/2028", s.expiry)
+    }
+
+    @Test
+    fun misreadMonthBeforeAYear() {
+        assertEquals("MAY 2029", read("EXP NAY 2029").expiry)
+        assertEquals("MAY 2029", read("26076601 MNY 2029").expiry)
+        // Real months and words that aren't months are left alone.
+        assertEquals("MAR 2028", read("EXP MAR 2028 SRP 25").expiry)
+        // "SEC" is one letter from both SEP and DEC: not guessed.
+        assertNull(read("EXP SEC 2028").expiry)
+    }
+
+    @Test
+    fun repeatsOutvoteAMisread() {
+        // Read three times right, once wrong: the majority wins.
+        assertEquals("MAY 2029", read("EXP MAY 2029", "EXP MAY 2029", "EXP MAY 2028", "EXP MAY 2029").expiry)
+        assertEquals("23651568", read("LOT 23651568", "LOT 23651568", "LOT 23651563").lot)
+        // A tie still suggests neither.
+        assertNull(read("LOT 23651568", "LOT 23651563").lot)
+    }
 }
