@@ -221,10 +221,10 @@ object ScanFlow {
         return era * 146097L + doe - 719468
     }
 
-    /** The scan-history level: green SAFE, amber UNVERIFIED, red UNSAFE. */
+    /** The scan-history level: green SAFE, amber NEEDS_REVIEW, red UNSAFE. */
     fun historySafety(verdict: Verdict): ScanSafety = when (verdict.level) {
         VerdictLevel.GREEN -> ScanSafety.SAFE
-        VerdictLevel.AMBER -> ScanSafety.UNVERIFIED
+        VerdictLevel.AMBER -> ScanSafety.NEEDS_REVIEW
         VerdictLevel.RED -> ScanSafety.UNSAFE
     }
 

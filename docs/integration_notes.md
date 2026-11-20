@@ -309,7 +309,7 @@ Existing files touched (glue only):
   the camera save photos rotated 90 degrees, and the model was not trained on sideways packs. The lock
   is removed; rotating mid-scan loses the scan again (known open item). Not yet confirmed on the
   tablet.
-- **Amber in scan history.** History now has three levels: `SAFE` (green), `UNVERIFIED` (amber, new)
+- **Amber in scan history.** History now has three levels: `SAFE` (green), `NEEDS_REVIEW` (amber, new)
   and `UNSAFE` (red), via `ScanFlow.historySafety`. The dashboard shows amber rows as "Couldn't fully
   verify" in amber, like the verdict screen; before, amber was saved and shown as red "Flagged: check
   with FDA". Older entries saved as `UNSAFE` with "(amber)" in their details read back as amber

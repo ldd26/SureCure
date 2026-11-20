@@ -281,17 +281,17 @@ class ScanFlowTest {
         val amber = verify(ScanInput("Biogesic", lot = "ZZ99999"), tables, today)  // no registration number
         val green = verify(ScanInput("Biogesic", regNo = "DR-153", lot = "ZZ99999"), tables, today)
         assertEquals(ScanSafety.UNSAFE, ScanFlow.historySafety(red))
-        assertEquals(ScanSafety.UNVERIFIED, ScanFlow.historySafety(amber))
+        assertEquals(ScanSafety.NEEDS_REVIEW, ScanFlow.historySafety(amber))
         assertEquals(ScanSafety.SAFE, ScanFlow.historySafety(green))
     }
 
     @Test
     fun olderAmberEntriesReadBackAsAmber() {
         // Before 2026-11-20 amber was saved as UNSAFE, with its real level in the details.
-        assertEquals(ScanSafety.UNVERIFIED, ScanSafety.fromStored("UNSAFE", "Couldn't fully verify (amber). Product: Biogesic"))
+        assertEquals(ScanSafety.NEEDS_REVIEW, ScanSafety.fromStored("UNSAFE", "Couldn't fully verify (amber). Product: Biogesic"))
         assertEquals(ScanSafety.UNSAFE, ScanSafety.fromStored("UNSAFE", "Matches an FDA counterfeit advisory (red)"))
         assertEquals(ScanSafety.SAFE, ScanSafety.fromStored("SAFE", ""))
-        assertEquals(ScanSafety.UNVERIFIED, ScanSafety.fromStored("UNVERIFIED", ""))
+        assertEquals(ScanSafety.NEEDS_REVIEW, ScanSafety.fromStored("NEEDS_REVIEW", ""))
         assertEquals(ScanSafety.UNSAFE, ScanSafety.fromStored("SOMETHING_NEW", ""))
     }
 

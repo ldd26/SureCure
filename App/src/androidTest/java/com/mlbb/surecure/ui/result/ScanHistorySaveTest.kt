@@ -46,7 +46,7 @@ class ScanHistorySaveTest {
         assertEquals(setOf("scan-1", "scan-2", "scan-3"), entries.keys)
         assertEquals(ScanSafety.UNSAFE, entries.getValue("scan-1").safety)
         assertEquals(ScanSafety.SAFE, entries.getValue("scan-2").safety)
-        assertEquals(ScanSafety.UNVERIFIED, entries.getValue("scan-3").safety)
+        assertEquals(ScanSafety.NEEDS_REVIEW, entries.getValue("scan-3").safety)
         val details = entries.getValue("scan-1").scanDetails
         assertTrue(details, details.startsWith("Matches an FDA counterfeit advisory (red)"))
         assertTrue(details, "Lot 23651568 is listed as counterfeit" in details)

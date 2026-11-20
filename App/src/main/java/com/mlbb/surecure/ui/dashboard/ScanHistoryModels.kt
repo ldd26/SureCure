@@ -16,19 +16,19 @@ import java.util.Locale
 enum class ScanSafety {
     /** Green: no match with FDA counterfeit records. */
     SAFE,
-    /** Amber: couldn't fully verify (added 2026-11-20; amber was saved as UNSAFE before). */
-    UNVERIFIED,
     /** Red: flagged, check with FDA. */
-    UNSAFE;
+    UNSAFE,
+    /** Amber: couldn't fully verify (amber was saved as UNSAFE before 2026-11-20). */
+    NEEDS_REVIEW;
 
     companion object {
         /**
          * The saved level, tolerant of older entries: before 2026-11-20 amber was stored as UNSAFE with
-         * "(amber)" in its details, so those read back as UNVERIFIED. An unknown name reads as UNSAFE.
+         * "(amber)" in its details, so those read back as NEEDS_REVIEW. An unknown name reads as UNSAFE.
          */
         fun fromStored(name: String, details: String): ScanSafety {
             val saved = entries.firstOrNull { it.name == name } ?: return UNSAFE
-            return if (saved == UNSAFE && "(amber)" in details) UNVERIFIED else saved
+            return if (saved == UNSAFE && "(amber)" in details) NEEDS_REVIEW else saved
         }
     }
 }
@@ -38,7 +38,8 @@ data class ScanHistoryEntry(
     val safety: ScanSafety,
     val scannedOn: Instant,
     val scanDetails: String = "",
-    @DrawableRes val thumbnailResId: Int = R.drawable.test_thumbnail,
+    val frontPhotoUri: String? = null,
+    val codePanelPhotoUri: String? = null
 )
 
 /**

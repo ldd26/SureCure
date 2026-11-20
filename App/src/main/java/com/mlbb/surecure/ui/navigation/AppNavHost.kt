@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.NavHost
@@ -40,16 +41,27 @@ fun AppNavHost() {
                 onBack = {
                     navController.popBackStack()
                 },
-                onPhotosCaptured = { frontPhoto, codePanelPhoto ->
+                onPhotosCaptured = { scanId, scanStartedAtIso, frontPhoto, codePanelPhoto ->
                     // Pass the local photo URIs to the review screen.
-                    navController.currentBackStackEntry
-                        ?.savedStateHandle
-                        ?.set("frontPhotoUri", frontPhoto.toString())
 
                     navController.currentBackStackEntry
                         ?.savedStateHandle
-                        ?.set("codePanelPhotoUri", codePanelPhoto.toString())
+                        ?.apply {
+                            set("scanId", scanId)
+                            set("scanStartedAt", scanStartedAtIso)
+                            set("frontPhotoUri", frontPhoto.toString())
 
+                            if (codePanelPhoto != null) {
+                                set(
+                                    "codePanelPhotoUri",
+                                    codePanelPhoto.toString()
+                                )
+                            } else {
+                                remove<String>("codePanelPhotoUri")
+                            }
+                        }
+
+                    // Keep your existing navigation to photo review.
                     navController.navigate("photo-review")
                 }
             )
@@ -88,9 +100,11 @@ fun AppNavHost() {
 
         composable("scan-result") {
             // Photo URIs were stored on the camera entry, as for photo-review.
-            val cameraEntry = runCatching {
-                navController.getBackStackEntry("camera")
-            }.getOrNull()
+            val cameraEntry = remember(navController.currentBackStackEntry) {
+                runCatching {
+                    navController.getBackStackEntry("camera")
+                }.getOrNull()
+            }
 
             val frontPhoto = cameraEntry
                 ?.savedStateHandle
@@ -107,6 +121,12 @@ fun AppNavHost() {
                     .savedStateHandle
                     .get<Boolean>("hasBarcode")
             }.getOrNull() ?: false
+
+            val scanId = runCatching {
+                navController.previousBackStackEntry
+                    ?.savedStateHandle
+                    ?.get<String>("scanId")
+            }
 
             if (frontPhoto != null && codePanelPhoto != null) {
                 ScanResultScreen(

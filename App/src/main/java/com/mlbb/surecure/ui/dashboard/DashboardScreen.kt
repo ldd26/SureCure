@@ -46,6 +46,8 @@ import com.mlbb.surecure.ui.theme.SureCureGray
 import com.mlbb.surecure.ui.theme.SureCureGreen
 import com.mlbb.surecure.ui.theme.SureCureMint
 import com.mlbb.surecure.ui.theme.SureCureRed
+import com.mlbb.surecure.ui.components.PhotoThumbnail
+import android.net.Uri
 
 /**
  * The home screen: brand header, scan history (from ScanHistoryRepository, grouped by month) and the
@@ -204,7 +206,7 @@ private fun ScanHistoryRow(
     // Same three levels and wording as the verdict screen.
     val (statusText, statusColor, rowBackground) = when (entry.safety) {
         ScanSafety.SAFE -> Triple("No match with FDA records", SureCureGreen, Color.Transparent)
-        ScanSafety.UNVERIFIED -> Triple("Couldn't fully verify", SureCureAmber, AmberBackground)
+        ScanSafety.NEEDS_REVIEW -> Triple("Couldn't fully verify", SureCureAmber, AmberBackground)
         ScanSafety.UNSAFE -> Triple("Flagged: check with FDA", SureCureRed, RedBackground)
     }
 
@@ -248,14 +250,27 @@ private fun ScanHistoryRow(
 
 @Composable
 private fun MedicineThumbnail(entry: ScanHistoryEntry) {
-    Image(
-        painter = painterResource(
-            id = entry.thumbnailResId
-        ),
-        contentDescription = "Medicine package thumbnail",
-        contentScale = ContentScale.Crop,
-        modifier = Modifier
-            .size(width = 58.dp, height = 48.dp)
-            .clip(RoundedCornerShape(7.dp))
-    )
+    // The scan's own front photo (saved with the entry); the placeholder if it is missing or unreadable.
+    val size = Modifier.size(64.dp)
+    val placeholder = @Composable {
+        Image(
+            painter = painterResource(R.drawable.test_thumbnail),
+            contentDescription = "Medicine thumbnail",
+            contentScale = ContentScale.Crop,
+            modifier = size.clip(RoundedCornerShape(7.dp))
+        )
+    }
+    val uri = entry.frontPhotoUri?.let { Uri.parse(it) }
+    if (uri == null) {
+        placeholder()
+    } else {
+        PhotoThumbnail(
+            uri = uri,
+            contentDescription = "Medicine thumbnail",
+            modifier = size,
+            maxSide = 192,
+            contentScale = ContentScale.Crop,
+            fallback = placeholder,
+        )
+    }
 }

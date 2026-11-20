@@ -39,13 +39,22 @@ import kotlinx.coroutines.withContext
  * 2026-11-20, decoded the full photo and ignored the tag, so portrait shots could show sideways.
  */
 @Composable
-fun PhotoThumbnail(uri: Uri, contentDescription: String, modifier: Modifier = Modifier) {
+fun PhotoThumbnail(
+    uri: Uri,
+    contentDescription: String,
+    modifier: Modifier = Modifier,
+    /** Longest side to decode, in px: 1080 for full-width photos, smaller for list thumbnails. */
+    maxSide: Int = MAX_SIDE_PX,
+    contentScale: ContentScale = ContentScale.Fit,
+    /** Shown instead of the "couldn't be shown" text if the photo can't be read. */
+    fallback: (@Composable () -> Unit)? = null,
+) {
     val context = LocalContext.current
     var image by remember(uri) { mutableStateOf<ImageBitmap?>(null) }
     var failed by remember(uri) { mutableStateOf(false) }
     LaunchedEffect(uri) {
         try {
-            image = withContext(Dispatchers.IO) { decodeUpright(context, uri, MAX_SIDE_PX) }?.asImageBitmap()
+            image = withContext(Dispatchers.IO) { decodeUpright(context, uri, maxSide) }?.asImageBitmap()
             failed = image == null
         } catch (e: CancellationException) {
             throw e
@@ -66,10 +75,10 @@ fun PhotoThumbnail(uri: Uri, contentDescription: String, modifier: Modifier = Mo
             bitmap != null -> Image(
                 bitmap = bitmap,
                 contentDescription = contentDescription,
-                contentScale = ContentScale.Fit,
+                contentScale = contentScale,
                 modifier = Modifier.matchParentSize()
             )
-            failed -> Text("Photo couldn't be shown", style = MaterialTheme.typography.bodySmall)
+            failed -> fallback?.invoke() ?: Text("Photo couldn't be shown", style = MaterialTheme.typography.bodySmall)
             else -> CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
         }
     }

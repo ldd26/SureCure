@@ -25,6 +25,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import androidx.compose.runtime.saveable.rememberSaveable
+import java.time.Instant
+import java.util.UUID
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.mlbb.surecure.ui.components.CameraButton
 import java.io.File
@@ -32,8 +35,16 @@ import java.io.File
 @Composable
 fun CameraScreen(
     onBack: () -> Unit,
-    onPhotosCaptured: (Uri, Uri) -> Unit
+    onPhotosCaptured: (String, String, Uri, Uri?) -> Unit
 ) {
+    val scanId = rememberSaveable {
+        UUID.randomUUID().toString()
+    }
+
+    val scanStartedAtIso = rememberSaveable {
+        Instant.now().toString()
+    }
+
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
@@ -309,6 +320,8 @@ fun CameraScreen(
 
                                         if (savedFront != null) {
                                             onPhotosCaptured(
+                                                scanId,
+                                                scanStartedAtIso,
                                                 savedFront,
                                                 savedUri
                                             )

@@ -1,23 +1,18 @@
 [
   {
-    "id": "test-1",
-    "safety": "SAFE",
-    "scannedOn": "2026-10-23T09:30:00Z",
-    "thumbnailName": "test_thumbnail",
-    "scanDetails": "Test result: no match with FDA counterfeit records."
+    "id": "9b5a3c35-c4d3-4732-9346-ea30a8bf3661",
+    "safety": "NEEDS_REVIEW",
+    "scannedOn": "2026-10-24T14:37:17.941710Z",
+    "scanDetails": "Couldn't fully verify\nChecked as: Biogesic\nBarcode: Not provided\nLot \/ batch: Not provided\nFDA registration number: Not provided\nExpiry date: Not provided\nManufacture date: Not provided\nReasons:\n• No registration number entered.\n• No lot number entered, so the counterfeit lot check could not run.",
+    "frontPhotoUri": "file:\/\/\/data\/user\/0\/com.mlbb.surecure\/files\/scan_captures\/amplodipine.jpg",
+    "codePanelPhotoUri": "file:\/\/\/data\/user\/0\/com.mlbb.surecure\/files\/scan_captures\/code_panel_1792852636404.jpg"
   },
   {
-    "id": "test-2",
-    "safety": "UNSAFE",
-    "scannedOn": "2026-09-12T11:45:00Z",
-    "thumbnailName": "test_thumbnail",
-    "scanDetails": "Test result: the lot number matches a counterfeit advisory."
-  },
-  {
-    "id": "test-3",
+    "id": "90f922e8-6441-4008-8bfb-a75567c1de16",
     "safety": "SAFE",
-    "scannedOn": "2025-08-01T10:00:00Z",
-    "thumbnailName": "test_thumbnail",
-    "scanDetails": "Test result: historical scan entry."
+    "scannedOn": "2026-05-24T14:37:45.441130Z",
+    "scanDetails": "Couldn't fully verify\nChecked as: Lagundi\nBarcode: Not provided\nLot \/ batch: Not provided\nFDA registration number: Not provided\nExpiry date: Not provided\nManufacture date: Not provided\nReasons:\n• No registration number entered.\n• No lot number entered, so the counterfeit lot check could not run.",
+    "frontPhotoUri": "file:\/\/\/data\/user\/0\/com.mlbb.surecure\/files\/scan_captures\/paracetamol.jpg",
+    "codePanelPhotoUri": "file:\/\/\/data\/user\/0\/com.mlbb.surecure\/files\/scan_captures\/code_panel_1792852663705.jpg"
   }
 ]

@@ -65,11 +65,8 @@ class ScanHistoryRepository(context: Context) {
                     scannedOn = Instant.parse(
                         item.getString("scannedOn")
                     ),
-                    thumbnailResId = if (resourceId != 0) {
-                        resourceId
-                    } else {
-                        R.drawable.test_thumbnail
-                    },
+                    frontPhotoUri = item.optNullableString("frontPhotoUri"),
+                    codePanelPhotoUri = item.optNullableString("codePanelPhotoUri"),
                     scanDetails = item.optString("scanDetails", "")
                 )
             )
@@ -104,24 +101,29 @@ class ScanHistoryRepository(context: Context) {
         val jsonArray = JSONArray()
 
         updated.forEach { scan ->
-            val thumbnailName = runCatching {
-                appContext.resources.getResourceEntryName(
-                    scan.thumbnailResId
-                )
-            }.getOrDefault("test_thumbnail")
-
             jsonArray.put(
                 JSONObject().apply {
                     put("id", scan.id)
                     put("safety", scan.safety.name)
                     put("scannedOn", scan.scannedOn.toString())
-                    put("thumbnailName", thumbnailName)
                     put("scanDetails", scan.scanDetails)
+                    put("frontPhotoUri", scan.frontPhotoUri ?: JSONObject.NULL)
+                    put("codePanelPhotoUri", scan.codePanelPhotoUri ?: JSONObject.NULL)
                 }
             )
         }
 
         historyFile.writeText(jsonArray.toString(2))
         cachedEntries = updated.toList()
+    }
+
+    private fun JSONObject.optNullableString(
+        key: String
+    ): String? {
+        if (isNull(key)) return null
+
+        return optString(key).takeIf {
+            it.isNotBlank()
+        }
     }
 }
