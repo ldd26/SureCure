@@ -288,3 +288,17 @@ Existing files touched (glue only):
   including the tester's text.
 - **Accessibility idea from the tester.** "Show what the phone read" also helps people with low
   vision read small print; worth a line in the presentation.
+
+## Update (2026-11-20, demo release)
+
+- **v1.0-demo crashed at launch on every device** ("SureCure keeps stopping"): `IllegalAccessError:
+  Class kotlin.collections.i extended by class zy is inaccessible`, raised in `androidx.startup` /
+  `ProcessLifecycleInitializer`. With R8 optimization limited to `androidx`, `kotlin` and `kotlinx`
+  (`packageScope`), R8 moved a subclass of a package-private Kotlin class into another package. The
+  R8 release build had never been opened on a device before it was published.
+- **Fix:** R8 is off for release builds (`optimization { enable = false }`), version 1.0.1 (code 2) so
+  it installs over 1.0. Release APKs: arm64 108.4 MB, armeabi-v7a 92.4 MB, x86_64 116.6 MB (were
+  99.6 / 83.6 / 107.8 MB with R8). The library classes keep their names, as in the debug builds
+  already tested on phones. Re-enable R8 only for the whole app, with keep rules, after a device test.
+- **Download:** GitHub release `v1.0-demo` on ldd26/SureCure; the QR code in `docs/media/` points at
+  `releases/download/v1.0-demo/SureCure.apk`, so replacing the file keeps the QR valid.
