@@ -14,8 +14,23 @@ import java.util.Locale
  * by ScanHistoryRepository from filesDir/scan_history.json.
  */
 enum class ScanSafety {
+    /** Green: no match with FDA counterfeit records. */
     SAFE,
-    UNSAFE
+    /** Amber: couldn't fully verify (added 2026-11-20; amber was saved as UNSAFE before). */
+    UNVERIFIED,
+    /** Red: flagged, check with FDA. */
+    UNSAFE;
+
+    companion object {
+        /**
+         * The saved level, tolerant of older entries: before 2026-11-20 amber was stored as UNSAFE with
+         * "(amber)" in its details, so those read back as UNVERIFIED. An unknown name reads as UNSAFE.
+         */
+        fun fromStored(name: String, details: String): ScanSafety {
+            val saved = entries.firstOrNull { it.name == name } ?: return UNSAFE
+            return if (saved == UNSAFE && "(amber)" in details) UNVERIFIED else saved
+        }
+    }
 }
 
 data class ScanHistoryEntry(

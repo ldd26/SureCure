@@ -1,81 +1,79 @@
 <div align="center">
 
-# 💊 SureCure
+<img src="docs/media/logo.svg" alt="SureCure logo" width="88" />
+
+# SureCure
 
 ### Snap the box. Check the codes. Know before you swallow.
 
-*An offline Android screener for counterfeit over-the-counter medicines in the Philippines*
+An offline Android screener for counterfeit over-the-counter medicines in the Philippines.
 
-<br />
+<p>
+  <a href="https://github.com/ldd26/SureCure/releases/tag/v1.0-demo"><img alt="Release" src="https://img.shields.io/github/v/release/ldd26/SureCure?label=download&color=14AE5C&style=flat" /></a>
+  <img alt="Android 7.0+" src="https://img.shields.io/badge/Android-7.0%2B-3DDC84?logo=android&logoColor=white&style=flat" />
+  <img alt="Works offline" src="https://img.shields.io/badge/internet-not%20required-02542D?style=flat" />
+  <img alt="Kotlin" src="https://img.shields.io/badge/Kotlin-Jetpack%20Compose-7F52FF?logo=kotlin&logoColor=white&style=flat" />
+  <img alt="ONNX Runtime" src="https://img.shields.io/badge/ONNX%20Runtime-on--device-005CED?logo=onnx&logoColor=white&style=flat" />
+  <img alt="ML Kit" src="https://img.shields.io/badge/ML%20Kit-text%20%2B%20barcode-4285F4?logo=google&logoColor=white&style=flat" />
+  <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-lightgrey?style=flat" /></a>
+</p>
 
-<img alt="Platform" src="https://img.shields.io/badge/platform-Android%207.0%2B-3DDC84?logo=android&logoColor=white&style=flat" />
-<img alt="Kotlin" src="https://img.shields.io/badge/Kotlin-Jetpack%20Compose-7F52FF?logo=kotlin&logoColor=white&style=flat" />
-<img alt="ONNX Runtime" src="https://img.shields.io/badge/ONNX%20Runtime-on--device-005CED?logo=onnx&logoColor=white&style=flat" />
-<img alt="PyTorch" src="https://img.shields.io/badge/PyTorch-ResNet--18-EE4C2C?logo=pytorch&logoColor=white&style=flat" />
-<img alt="Works offline" src="https://img.shields.io/badge/internet-not%20required-2E8B57?style=flat" />
+**[Download](#download)** · **[How it works](#how-it-works)** · **[Results](#results)** · **[Data](#where-the-data-comes-from)** · **[FAQ](#faq)** · **[Build it](#build-it-yourself)**
+
+<img src="docs/media/demo.gif" alt="A full scan on a tablet: front photo, code-panel photo, product pick, codes read from the photo, amber verdict" width="560" />
+
+<sub>A real scan, sped through: front photo → code panel → pick the product → codes read from the photo → verdict.</sub>
 
 </div>
 
----
-
 > [!IMPORTANT]
-> SureCure **screens**, it doesn't certify. 🟢 Green means *"no match with FDA counterfeit records"*, never "safe" or "authentic". Anything 🟡 amber or 🔴 red should be checked with the FDA and a pharmacist.
+> SureCure **screens**, it doesn't certify. 🟢 Green means *"no match with FDA counterfeit records"*, never "safe" or "authentic". Check anything 🟡 amber or 🔴 red with the FDA and a pharmacist.
 
-<details>
-<summary><b>📑 Contents</b></summary>
+## Download
 
-1. [The problem](#-the-problem)
-2. [What SureCure does](#-what-surecure-does)
-3. [Where the data comes from](#%EF%B8%8F-where-the-data-comes-from)
-4. [How it works](#%EF%B8%8F-how-it-works)
-5. [What we found](#-what-we-found)
-6. [What went wrong, and what we did about it](#-what-went-wrong-and-what-we-did-about-it)
-7. [Where it goes next](#-where-it-goes-next)
-8. [Getting started](#-getting-started)
-9. [Inside the repo](#%EF%B8%8F-inside-the-repo)
-10. [How we built it](#-how-we-built-it)
-11. [References](#-references)
+<table>
+<tr>
+<td align="center" width="200">
+<img src="docs/media/download-qr.svg" alt="QR code: download SureCure.apk" width="170" /><br />
+<sub>Scan with your phone's camera</sub>
+</td>
+<td>
 
-</details>
+**[⬇ Download SureCure.apk](https://github.com/ldd26/SureCure/releases/download/v1.0-demo/SureCure.apk)** (about 108 MB, Wi-Fi recommended)<br />
+Older or Android Go phones: **[SureCure-older-phones.apk](https://github.com/ldd26/SureCure/releases/download/v1.0-demo/SureCure-older-phones.apk)**
 
----
+1. Open the downloaded file. If Android asks, allow your browser to **install unknown apps**.
+2. If a SureCure built elsewhere is already installed, uninstall it first.
+3. Open SureCure and tap the green camera button.
 
-## 🚨 The problem
+Android 7.0 and newer · no account · works offline. [Release notes and checksums](https://github.com/ldd26/SureCure/releases/tag/v1.0-demo)
 
-A 2019 United Nations report named the Philippines a hotspot for counterfeit medicines in Southeast Asia (United Nations Office on Drugs and Crime [UNODC], 2019). It isn't abstract. The FDA keeps warning about fake versions of the brands sitting in every household cabinet: Biogesic, Bioflu, Decolgen Forte, Tuseran Forte, Alaxan FR.
+</td>
+</tr>
+</table>
 
-Fakes are made to look right, so looking closely doesn't help much. What *does* give them away is usually written on the box: a lot number the FDA has flagged, a registration number that belongs to a different product, a barcode that doesn't match. The catch is that this evidence is buried in hundreds of advisories that ordinary buyers never read.
+## The problem
+
+A 2019 United Nations report named the Philippines a hotspot for counterfeit medicines in Southeast Asia (United Nations Office on Drugs and Crime [UNODC], 2019). The FDA keeps warning about fakes of the brands in every household cabinet: Biogesic, Bioflu, Decolgen Forte, Tuseran Forte, Alaxan FR.
+
+Fakes are made to look right, so looking closely doesn't help much. What gives them away is usually printed on the box: a lot number the FDA has flagged, a registration number that belongs to a different product, a barcode that doesn't match. That evidence is buried in hundreds of advisories ordinary buyers never read.
 
 **Our question:** can a regular Android phone recognize a common OTC medicine from a photo, check its printed codes against FDA records offline, and stay honest about what it can't tell?
 
-## ✨ What SureCure does
+## What SureCure does
 
 | | |
 |---|---|
-| 📸 **Two-photo capture** | The front of the pack, then the panel with the codes |
-| 🏷️ **Barcode first** | A listed barcode identifies the product straight away |
-| 🧠 **On-device recognition** | A small vision model recognizes 20 common Philippine OTC products, with no internet needed |
-| 🙅 **Knows what it doesn't know** | Unfamiliar packs are flagged instead of guessed |
-| 🔎 **Code check** | On-device text recognition and barcode scanning read the barcode, lot, registration number and dates from the code-panel photo; the user checks or types each one, confirms, and the codes are checked against FDA-based rules |
-| ⏰ **Expiry check** | The expiry date read from the pack is checked at once: an expired pack says "Expired: do not take this medicine", and one within 90 days of expiry is flagged |
+| 📸 **Two photos** | The front of the pack, then the panel with the codes |
+| 🧠 **Recognizes the product** | A small vision model on the phone knows 20 common Philippine OTC products |
+| 🙅 **Knows what it doesn't know** | Unfamiliar packs go to a searchable product list instead of a guess |
+| 🔎 **Reads the codes for you** | On-device text recognition and barcode scanning fill in the barcode, lot, registration number and dates; you check them and confirm |
+| ⏰ **Checks the expiry at once** | "Expired: do not take this medicine", or a warning when 90 days or fewer are left |
 | 🚦 **Clear verdict** | 🔴 red, 🟡 amber or 🟢 green, always with the reasons |
-| 📍 **Next step** | Amber and red results link to FDA verification and reporting, and point to nearby established drugstores |
-| 🗒️ **Scan history** | Every verdict is saved on the phone, grouped by month |
+| 📍 **Next step** | Amber and red link to FDA verification and reporting, and to nearby established drugstores |
+| 🗒️ **Scan history** | Every verdict is kept on the phone in its colour, grouped by month |
 
-## 🗂️ Where the data comes from
-
-| Source | Used for | Size |
-|---|---|---|
-| Capsure: Pharmaceutical Drugs and Vitamins Dataset V2 (Vencer, 2023) | Training (synthetic composites) and testing (real photos) | 20 products, ~40k synthetic and ~11k real images |
-| FDA Philippines registrations | Registration number check | 66 numbers for our brands |
-| FDA counterfeit drug advisories, March 2022 to present | Counterfeit lot check | 327 product and lot pairs, 122 for our products |
-| Online pharmacy listings and Open Food Facts | Barcode lookup | 18 check-digit-verified EAN-13 codes |
-| Chain drugstore store locators | "Find a nearby drugstore" | 4,252 branches collected and checked against 2023 PSGC boundaries; the app ships the 3,651 with exact coordinates (Faeldon, n.d.; Philippine Statistics Authority [PSA], 2023) |
-| Medical Pills dataset (Jocher & Rizwan, 2024) | Testing the out-of-scope guard on unfamiliar pills | 115 images |
-
-Scraped files are kept untouched in `data/*/raw/`. Every cleaned table and app asset is rebuilt by a script in `scripts/`, and each data folder has a short README listing what was fixed and what's still missing.
-
-## 🛠️ How it works
+## How it works
 
 ```mermaid
 flowchart LR
@@ -95,103 +93,172 @@ flowchart LR
     R --> V3[🟢 Green]
 ```
 
-**The photo identifies the product. The codes decide the verdict.** A good fake looks like the real thing, so we never let the image model call something counterfeit.
+**The photo identifies the product. The codes decide the verdict.** A good fake looks like the real thing, so the image model never calls anything counterfeit.
+
+| Verdict | When |
+|---|---|
+| 🔴 **Red** | The lot exactly matches an FDA counterfeit advisory for that product, or the codes belong to a different product |
+| 🟡 **Amber** | Something can't be verified: no or unknown registration number, unknown barcode, no lot, expired, the lot is one look-alike character (O/0, I/1, S/5…) from a listed lot, or the lot is listed for a different product |
+| 🟢 **Green** | No match with FDA counterfeit records |
 
 <details>
-<summary><b>🔬 The details</b></summary>
+<summary><b>The details</b></summary>
+
+<br />
 
 - **Recognition.** A ResNet-18 (He et al., 2016) pretrained on ImageNet (Deng et al., 2009) and trained with AdamW (Loshchilov & Hutter, 2019), exported to ONNX and run with ONNX Runtime on the phone.
-- **Synthetic-only training, on purpose.** In Capsure's real photos, each product was shot in its own time slot, so lighting alone predicts the product (14.1% against 5% chance). We train on the synthetic composites and keep real photos for choosing the checkpoint, calibrating and testing.
+- **Synthetic-only training, on purpose.** In Capsure's real photos each product was shot in its own time slot, so lighting alone predicts the product (14.1% against 5% chance). We train on the synthetic composites and keep real photos for choosing the checkpoint, calibrating and testing.
 - **No leakage.** Real photos are split by burst (shots taken seconds apart), never by frame.
 - **Out-of-scope guard.** An energy score (Liu et al., 2020) with a conformal threshold (Bates et al., 2023), set so about 5% of supported photos get wrongly rejected. A rejected photo goes to the product list, not a dead end.
 - **Calibrated confidence.** Temperature scaling sets how sure the model has to be before showing a single answer; below that, it shows its top 3.
-- **Rules.** Red if the lot exactly matches an FDA counterfeit advisory for that product, or if the codes belong to a different product. Amber if something can't be verified, if the lot is one look-alike character (O/0, I/1, S/5, ...) from a listed lot of 6+ characters, or if the lot is listed for a different product. Green otherwise. Every product variant (Forte, No-Drowse, ...) maps to one label, so a genuine variant is never flagged just for being a variant.
+- **Reading the codes.** ML Kit Text Recognition v2 and Barcode Scanning, bundled so they work offline. A barcode must pass its check digit, digits get look-alike fixes only where digits are expected, lots are never auto-corrected, and every field must be confirmed by the user.
 - **One source of truth.** `meta.json` carries every number the app needs (temperature, thresholds, padding colour). The app reads it instead of hard-coding values.
+- **Variants.** Every product variant (Forte, No-Drowse, …) maps to one label, so a genuine variant is never flagged just for being a variant.
 
 </details>
 
-## 📊 What we found
+## Results
 
-Measured on real photos that were never used for training or any tuning decision, with 95% Wilson intervals (Wilson, 1927):
+Measured on real photos never used for training or any tuning decision, with 95% Wilson intervals (Wilson, 1927).
 
-| | Result |
+| Product recognition | Result |
 |---|---|
-| 📦 **Packaging photos** (what the app asks for) | **78.0%** correct (71.5 to 83.3) |
-| 🥉 Right answer within the top 3 | **89.8%** (84.6 to 93.4) |
+| 📦 **Packaging photos** (what the app asks for) | **78.0%** correct (71.5 to 83.3), per burst |
+| 🥉 Right product within the top 3 | **89.8%** (84.6 to 93.4) |
 | 🟦 Box / blister strip / loose pill | 92.8% / 56.0% / 18.3% |
-| 🖼️ All real photos, any kind | 54.6% (48.9 to 60.2) |
-| 💡 Lighting-only baseline (chance 5%) | 14.1% |
-| ✅ When the app answers confidently | 37.5% of packaging photos, 95.2% of those correct |
+| ✅ When the app answers on its own | 37.5% of packaging photos, 95.2% of those correct |
 | 🙅 Unknown-product guard | AUROC 0.81 on held-out products; wrongly rejects 6.4% of supported photos |
+| 💡 Lighting-only baseline (chance 5%) | 14.1% |
 | 📱 Phone vs training preprocessing | Same answer on 93.3% of photos |
 
-**In plain terms:** box photos work very well, loose pills don't, so the app asks for the box. When it isn't sure, the right product is almost always in its top 3. The rules engine is checked against 1,027 cases from the Python reference and 21 hand-written scenarios. For example, Biogesic lot 23651568 from FDA Advisory No. 2025-0507 (Food and Drug Administration Philippines [FDA], 2025) comes back red, and so does the same lot with one character misread.
+| Counterfeit check | Result |
+|---|---|
+| 🔴 FDA-listed lots, entered with the right product | **327 / 327 red** |
+| 🟡 Same lots, product unknown or wrong | 327 / 327 amber ("listed for another product") |
+| ⚖️ Kotlin rules vs the Python reference | 1,027 cases, identical verdicts and reasons; 23 scenarios |
 
-## 🧗 What went wrong, and what we did about it
+**In plain terms:** box photos work very well, loose pills don't, so the app asks for the box. When it isn't sure, the right product is almost always in its top 3. Every listed counterfeit lot is caught when the lot is read correctly. Example: Biogesic lot 23651568 from FDA Advisory No. 2025-0507 (Food and Drug Administration Philippines [FDA], 2025) comes back red; the same lot with one look-alike character misread (2365I568) comes back amber with a prompt to check the lot again.
+
+> [!NOTE]
+> Not measured yet: how often the whole system flags real counterfeit packs, and OCR read rates on real packs. The field-test protocol is in [`docs/field_test.md`](docs/field_test.md).
+
+## Where the data comes from
+
+| Source | Used for | Size |
+|---|---|---|
+| Capsure: Pharmaceutical Drugs and Vitamins Dataset V2 (Vencer, 2023) | Training (synthetic composites) and testing (real photos) | 20 products, ~40k synthetic and ~11k real images |
+| FDA Philippines registrations | Registration number check | 66 numbers for our brands |
+| FDA counterfeit drug advisories, March 2022 to present | Counterfeit lot check | 327 product and lot pairs, 122 for our products |
+| Online pharmacy listings and Open Food Facts | Barcode lookup | 18 check-digit-verified EAN-13 codes |
+| Chain drugstore store locators | "Find a nearby drugstore" | 4,252 branches checked against 2023 PSGC boundaries; the app ships the 3,651 with exact coordinates (Faeldon, n.d.; Philippine Statistics Authority [PSA], 2023) |
+| Medical Pills dataset (Jocher & Rizwan, 2024) | Testing the out-of-scope guard on unfamiliar pills | 115 images |
+
+Scraped files stay untouched in `data/*/raw/`. Every cleaned table and app asset is rebuilt by a script in `scripts/`, and each data folder has a README listing what was fixed and what's still missing.
+
+## What went wrong, and what we did about it
 
 - **Synthetic to real.** 98.5% on synthetic images, much less on real ones. Stronger augmentation and AdaBN (Li et al., 2018) both made it worse, so we dropped them. Fine-tuning on our own photos of three products made the model guess those three too often; a safeguard we built rejected it automatically.
 - **A guard that failed.** Our first unknown-product guard, a Mahalanobis score (Lee et al., 2018) fitted on synthetic features, scored worse than chance on outside pill photos. It was measuring image quality, not product identity. We ran a fair comparison of four options with the winner decided before the run; the energy score won. The failed version stays in the notebook as evidence.
 - **Messy scraped data.** Duplicate advisories, ten spellings of one brand, placeholder lot numbers, and about 1 in 7 drugstore coordinates missing or in the wrong city. Scripts clean and log all of it and set aside 66 rows for a person to check.
 - **Gaps in FDA records.** No registration was found for Myra E, Neurogen E, Rogin E, Omeprazole (generic) or DayZinc. They still get the counterfeit lot check, but top out at amber.
+- **The first phone tests.** Photos were never read because of a decoding bug; the first release build crashed at launch because of how the code shrinker (R8) rewrote a library; a portrait lock turned tablet photos sideways. Each was found by testers on real devices, fixed the same day, and now has a test or a note in [`docs/integration_notes.md`](docs/integration_notes.md).
 
-## 🔭 Where it goes next
+## Where it goes next
 
-- 🔁 **Learn from real use:** barcode-confirmed scans (opt-in) become new training photos taken on real phones.
-- 🔄 **Live FDA updates** with the advisory number and link shown on every red result.
-- 🗺️ **Spot outbreaks:** opt-in reports grouped by municipality, shown only once there are at least 5, could tell the FDA where a fake lot is spreading.
+- 📊 **Measure the whole system:** scan real and mock packs for end-to-end detection, false-red rate and OCR read rates.
+- 📷 **Real photos from many phones:** fine-tune and recalibrate on drugstore-bought packs; crop the pack before classifying.
+- 🔄 **Live FDA updates** with the advisory number and link on every red result.
+- 🪶 **Smaller app:** a half-precision model and a trimmed ONNX Runtime could save about 50 MB.
 - ➕ **More products:** adding one means synthetic images, a few real photos and its FDA rows.
 
-## 🚀 Getting started
+## FAQ
 
-**You'll need** Android Studio (recent stable), an Android 7.0+ phone or emulator, and Python 3 if you want to rebuild data or rerun the model.
+<details>
+<summary><b>Does SureCure detect fake medicine?</b></summary>
+<br />
+It checks the printed codes against FDA counterfeit records. A fake whose lot was never reported, with correct-looking codes, comes back green. That's why green means "no match", never "authentic".
+</details>
+
+<details>
+<summary><b>Do I have to type the codes?</b></summary>
+<br />
+Usually not. The app reads the barcode, lot, registration number and dates from the code-panel photo; you check them, tick "I've checked these codes", and type only what it missed. "Show what the phone read" shows the raw text.
+</details>
+
+<details>
+<summary><b>Why did it show the full product list instead of three choices?</b></summary>
+<br />
+The out-of-scope guard decided the photo didn't look like one of the 20 trained products, so it doesn't guess. Pick the product from the list; the counterfeit check still runs on the codes. Photos with the pack filling the frame, in good light, are recognized most often.
+</details>
+
+<details>
+<summary><b>Why amber when everything looks fine?</b></summary>
+<br />
+Amber means something couldn't be verified, most often a missing registration number. The reasons are always listed under the verdict.
+</details>
+
+<details>
+<summary><b>Does it need the internet? What leaves my phone?</b></summary>
+<br />
+No internet needed. Photos and scan results stay on the phone. Google's bundled ML Kit libraries send anonymous usage and diagnostic data.
+</details>
+
+## Build it yourself
+
+You'll need Android Studio (recent stable), an Android 7.0+ phone or emulator, and Python 3 to rebuild data or rerun the model. Open the folder in Android Studio, let Gradle sync, press ▶️. The models and tables are bundled, so the app works offline.
 
 ```bash
-git clone <this repository>
-cd SureCure
-```
-
-**Run the app.** Open the folder in Android Studio, let Gradle sync, press ▶️. The model, the text-recognition model and all tables are bundled, so it works offline.
-
-**Build an APK.** `./gradlew :app:assembleDebug` writes one APK per CPU type to `App/build/outputs/apk/debug/`: `app-arm64-v8a-debug.apk` for almost every current phone, `app-armeabi-v7a-debug.apk` for older or Android Go phones, `app-x86_64-debug.apk` for the emulator. The arm64 APK is about 114 MB (armeabi-v7a about 98 MB, x86_64 about 122 MB), instead of one APK of about 250 MB carrying all of them. A release build (`./gradlew :app:assembleRelease`) shrinks the code with R8: arm64 about 100 MB. Release APKs are signed with the local debug key for testing and the demo; publishing on Google Play needs a real release key. Uninstall a build from another computer before installing (each computer has its own debug key).
-
-**Run the tests**
-
-```bash
-./gradlew :app:testDebugUnitTest          # preprocessing, rules, parity with Python, scan flow, drugstores
-./gradlew :app:connectedDebugAndroidTest  # golden images: phone must match the notebook
+./gradlew :app:assembleRelease            # APKs in App/build/outputs/apk/release/ (one per CPU type)
+./gradlew :app:testDebugUnitTest          # rules, parity with Python, OCR extraction, scan flow, preprocessing
+./gradlew :app:connectedDebugAndroidTest  # on a device: golden images, history, photo reading
 pytest -q rules/tests                     # Python reference rules
-python scripts/field_test_metrics.py data/field_test/results.csv  # real-pack field test (docs/field_test.md)
+python scripts/build_fda_tables.py        # rebuild FDA tables from data/fda/raw
+python scripts/build_drugstore_asset.py   # rebuild the app's drugstore list
+python scripts/field_test_metrics.py data/field_test/results.csv   # real-pack field test metrics
 ```
 
-**Rebuild the data**
+<details>
+<summary><b>APK details</b></summary>
 
-```bash
-python scripts/build_fda_tables.py         # FDA tables from data/fda/raw
-python scripts/build_drugstore_asset.py    # the app's drugstore list
-```
+<br />
 
-**Reproduce the model numbers.** Open `ml/surecure_train.ipynb` on Kaggle or Colab with a T4 GPU and attach the Capsure dataset. Full training takes about 2 hours. To re-score our released weights instead, attach them and run `import os; os.environ["SC_EVAL_WEIGHTS"] = "auto"` before the config cell (about 20 minutes). Results land in `surecure_outputs.zip`.
+One APK per CPU type: `app-arm64-v8a-release.apk` for almost every current phone (108.4 MB), `app-armeabi-v7a-release.apk` for older or Android Go phones (92.4 MB), `app-x86_64-release.apk` for the emulator. Release builds are signed with the local debug key for testing and demos; Google Play needs a real release key. Code shrinking (R8) is off: a partial R8 setup crashed the app at launch. Uninstall a build from another computer before installing one from yours.
 
-## 🗃️ Inside the repo
+</details>
+
+<details>
+<summary><b>Reproduce the model numbers</b></summary>
+
+<br />
+
+Open `ml/surecure_train.ipynb` on Kaggle or Colab with a T4 GPU and attach the Capsure dataset. Full training takes about 2 hours. To re-score our released weights instead, attach them and run `import os; os.environ["SC_EVAL_WEIGHTS"] = "auto"` before the config cell (about 20 minutes). Results land in `surecure_outputs.zip`.
+
+</details>
+
+<details>
+<summary><b>Inside the repo</b></summary>
 
 ```
 App/                     Android app (Kotlin, Jetpack Compose)
 ├─ src/main/assets/        model (onnx + meta + labels), FDA tables, drugstore list
 ├─ src/main/java/…/ml/     preprocessing + on-device classifier
+├─ src/main/java/…/ocr/    code-panel reading (ML Kit) + extraction
 ├─ src/main/java/…/rules/  rules engine, FDA table loading, barcode lookup
 ├─ src/main/java/…/ui/     camera, result, nearby drugstores, dashboard
-└─ src/test, androidTest   unit, parity and golden-image tests
+└─ src/test, androidTest   unit, parity, OCR and golden-image tests
 ml/                      training + evaluation notebook and its generator
 rules/                   Python reference rules + test scenarios
-data/                    FDA and drugstore data (raw + cleaned)
-scripts/                 rebuild tables, assets and test fixtures
-docs/                    model card, data sources, integration notes
+data/                    FDA and drugstore data (raw + cleaned), field-test sheet
+scripts/                 rebuild tables, assets, fixtures; field-test metrics
+docs/                    model card, data sources, integration notes, field test
 med-images/              team photos used in the fine-tuning experiment
 ```
 
-**Dependencies.** App: Kotlin, Jetpack Compose, Navigation Compose, CameraX, ONNX Runtime for Android, ML Kit Text Recognition v2 and Barcode Scanning (bundled models) (pinned in `gradle/libs.versions.toml` and `App/build.gradle.kts`). Notebook: PyTorch, torchvision, scikit-learn, SciPy, pandas, Pillow, onnxruntime. Data scripts: pandas, NumPy, matplotlib. Weights, datasets and run outputs stay out of git.
+**Dependencies.** App: Kotlin, Jetpack Compose, Navigation Compose, CameraX, ONNX Runtime for Android, ML Kit Text Recognition v2 and Barcode Scanning (pinned in `gradle/libs.versions.toml` and `App/build.gradle.kts`). Notebook: PyTorch, torchvision, scikit-learn, SciPy, pandas, Pillow, onnxruntime. Data scripts: pandas, NumPy, matplotlib. Weights, datasets and run outputs stay out of git.
 
-## 🤝 How we built it
+</details>
+
+## How we built it
 
 <p>
   <img alt="Claude" src="https://img.shields.io/badge/Claude-coding%20assistant-D97757?logo=claude&logoColor=white&style=flat" />
@@ -210,7 +277,7 @@ What the AI couldn't do for us was the **systems thinking**, and that's where mo
 
 The calls that matter were ours: what data to trust, what counts as red, amber or green, and how to read the results. When the AI got something wrong, we fixed it and kept the record, which is why the failed experiments are still in the notebook.
 
-## 📚 References
+## References
 
 <details>
 <summary>Show all references (APA 7th edition)</summary>
@@ -248,3 +315,7 @@ Wilson, E. B. (1927). Probable inference, the law of succession, and statistical
 Store locators of the five chains and the FDA registration and advisory sources are listed in `docs/data_sources.md`. Method references for the notebook are at the end of `ml/surecure_train.ipynb`.
 
 </details>
+
+---
+
+<div align="center"><sub>MIT licensed · SureCure Team · Not affiliated with the Food and Drug Administration Philippines</sub></div>

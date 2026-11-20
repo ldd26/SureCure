@@ -38,7 +38,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mlbb.surecure.util.formatScanDate
 import com.mlbb.surecure.ui.components.CameraButton
+import com.mlbb.surecure.ui.theme.AmberBackground
 import com.mlbb.surecure.ui.theme.RedBackground
+import com.mlbb.surecure.ui.theme.SureCureAmber
 import com.mlbb.surecure.ui.theme.SureCureDarkGreen
 import com.mlbb.surecure.ui.theme.SureCureGray
 import com.mlbb.surecure.ui.theme.SureCureGreen
@@ -199,9 +201,12 @@ private fun ScanHistoryRow(
     entry: ScanHistoryEntry,
     onClick: () -> Unit
 ) {
-    val isSafe = entry.safety == ScanSafety.SAFE
-    val statusColor = if (isSafe) SureCureGreen else SureCureRed
-    val rowBackground = if (isSafe) Color.Transparent else RedBackground
+    // Same three levels and wording as the verdict screen.
+    val (statusText, statusColor, rowBackground) = when (entry.safety) {
+        ScanSafety.SAFE -> Triple("No match with FDA records", SureCureGreen, Color.Transparent)
+        ScanSafety.UNVERIFIED -> Triple("Couldn't fully verify", SureCureAmber, AmberBackground)
+        ScanSafety.UNSAFE -> Triple("Flagged: check with FDA", SureCureRed, RedBackground)
+    }
 
     Row(
         modifier = Modifier
@@ -220,7 +225,7 @@ private fun ScanHistoryRow(
             verticalArrangement = Arrangement.Center
         ) {
             Text(
-                text = if (isSafe) "No match with FDA records" else "Flagged: check with FDA",
+                text = statusText,
                 color = statusColor,
                 fontSize = 16.sp,
                 lineHeight = 20.sp,

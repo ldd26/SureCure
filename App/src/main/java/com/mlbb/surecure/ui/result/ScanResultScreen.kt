@@ -8,7 +8,6 @@ import android.content.Context
 import android.util.Log
 import com.mlbb.surecure.data.repository.ScanHistoryRepository
 import com.mlbb.surecure.ui.dashboard.ScanHistoryEntry
-import com.mlbb.surecure.ui.dashboard.ScanSafety
 import java.time.Instant
 import java.util.UUID
 import androidx.compose.foundation.background
@@ -551,11 +550,11 @@ private fun CodeStage(
         )
     }
 
-    field(ScanFlow.FIELD_BARCODE, entry.barcode, "Barcode number (13 digits under the bars)", KeyboardType.Number) {
+    field(ScanFlow.FIELD_BARCODE, entry.barcode, "Barcode number (optional, 13 digits under the bars)", KeyboardType.Number) {
         entry.copy(barcode = it)
     }
     field(ScanFlow.FIELD_LOT, entry.lot, "Lot / batch number", KeyboardType.Text) { entry.copy(lot = it) }
-    field(ScanFlow.FIELD_REG_NO, entry.regNo, "FDA registration number (e.g. DR-XY12345)", KeyboardType.Text) {
+    field(ScanFlow.FIELD_REG_NO, entry.regNo, "FDA registration number (optional, e.g. DR-XY12345)", KeyboardType.Text) {
         entry.copy(regNo = it)
     }
     field(ScanFlow.FIELD_EXPIRY, entry.expiry, "Expiry date (e.g. MAR 2028)", KeyboardType.Text) {
@@ -677,8 +676,8 @@ private fun Photo(uri: Uri, description: String) {
 }
 
 /**
- * Saves the verdict to the dashboard's scan history. The history only has SAFE / UNSAFE, so green is
- * SAFE and red or amber are UNSAFE; the real level, product and reasons go into scanDetails.
+ * Saves the verdict to the dashboard's scan history: green SAFE, amber UNVERIFIED, red UNSAFE
+ * (ScanFlow.historySafety); the headline, level, product and reasons go into scanDetails.
  */
 internal suspend fun saveToHistory(context: Context, id: String, verdict: Verdict) {
     val details = buildString {
@@ -690,7 +689,7 @@ internal suspend fun saveToHistory(context: Context, id: String, verdict: Verdic
         ScanHistoryRepository(context).saveEntry(
             ScanHistoryEntry(
                 id = id,
-                safety = if (verdict.level == VerdictLevel.GREEN) ScanSafety.SAFE else ScanSafety.UNSAFE,
+                safety = ScanFlow.historySafety(verdict),
                 scannedOn = Instant.now(),
                 scanDetails = details,
             )

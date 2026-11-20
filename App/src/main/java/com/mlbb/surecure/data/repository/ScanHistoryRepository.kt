@@ -58,8 +58,9 @@ class ScanHistoryRepository(context: Context) {
             entries.add(
                 ScanHistoryEntry(
                     id = item.getString("id"),
-                    safety = ScanSafety.valueOf(
-                        item.getString("safety")
+                    safety = ScanSafety.fromStored(
+                        item.getString("safety"),
+                        item.optString("scanDetails")
                     ),
                     scannedOn = Instant.parse(
                         item.getString("scannedOn")

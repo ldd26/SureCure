@@ -309,3 +309,11 @@ Existing files touched (glue only):
   the camera save photos rotated 90 degrees, and the model was not trained on sideways packs. The lock
   is removed; rotating mid-scan loses the scan again (known open item). Not yet confirmed on the
   tablet.
+- **Amber in scan history.** History now has three levels: `SAFE` (green), `UNVERIFIED` (amber, new)
+  and `UNSAFE` (red), via `ScanFlow.historySafety`. The dashboard shows amber rows as "Couldn't fully
+  verify" in amber, like the verdict screen; before, amber was saved and shown as red "Flagged: check
+  with FDA". Older entries saved as `UNSAFE` with "(amber)" in their details read back as amber
+  (`ScanSafety.fromStored`), so existing histories are corrected without a migration.
+- **Optional code fields.** The barcode and FDA registration number fields are labelled optional.
+  A blank registration number still gives amber ("No registration number entered") because the rules
+  engine needs it to confirm registration; a blank barcode gives no reason.

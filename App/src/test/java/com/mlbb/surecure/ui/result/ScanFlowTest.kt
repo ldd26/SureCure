@@ -7,6 +7,7 @@ import com.mlbb.surecure.ocr.CodePanelReading
 import com.mlbb.surecure.ocr.CodePanelText
 import com.mlbb.surecure.rules.FdaTables
 import com.mlbb.surecure.rules.PackDate
+import com.mlbb.surecure.ui.dashboard.ScanSafety
 import com.mlbb.surecure.rules.ScanInput
 import com.mlbb.surecure.rules.VerdictLevel
 import com.mlbb.surecure.rules.verify
@@ -271,6 +272,27 @@ class ScanFlowTest {
         val red = verify(expiredScan.copy(lot = "23651568"), tables, PackDate(2026, 11, 17))
         assertEquals(VerdictLevel.RED.headline, ScanFlow.headline(red, status))
         assertEquals("Expired on 31 Mar 2026. Expired medicine may not work and should not be taken.", ScanFlow.expiryNote(status!!))
+    }
+
+    @Test
+    fun historyKeepsAllThreeLevels() {
+        val today = PackDate(2026, 11, 20)
+        val red = verify(ScanInput("Biogesic", lot = "23651568"), tables, today)
+        val amber = verify(ScanInput("Biogesic", lot = "ZZ99999"), tables, today)  // no registration number
+        val green = verify(ScanInput("Biogesic", regNo = "DR-153", lot = "ZZ99999"), tables, today)
+        assertEquals(ScanSafety.UNSAFE, ScanFlow.historySafety(red))
+        assertEquals(ScanSafety.UNVERIFIED, ScanFlow.historySafety(amber))
+        assertEquals(ScanSafety.SAFE, ScanFlow.historySafety(green))
+    }
+
+    @Test
+    fun olderAmberEntriesReadBackAsAmber() {
+        // Before 2026-11-20 amber was saved as UNSAFE, with its real level in the details.
+        assertEquals(ScanSafety.UNVERIFIED, ScanSafety.fromStored("UNSAFE", "Couldn't fully verify (amber). Product: Biogesic"))
+        assertEquals(ScanSafety.UNSAFE, ScanSafety.fromStored("UNSAFE", "Matches an FDA counterfeit advisory (red)"))
+        assertEquals(ScanSafety.SAFE, ScanSafety.fromStored("SAFE", ""))
+        assertEquals(ScanSafety.UNVERIFIED, ScanSafety.fromStored("UNVERIFIED", ""))
+        assertEquals(ScanSafety.UNSAFE, ScanSafety.fromStored("SOMETHING_NEW", ""))
     }
 
     private fun scanFor(product: String, entry: ScanFlow.CodeEntry) =

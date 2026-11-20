@@ -32,17 +32,21 @@ class ScanHistorySaveTest {
         val tables = FdaTablesLoader.load(context)
         val red = verify(ScanInput("Biogesic", lot = "23651568"), tables)
         val green = verify(ScanInput("Biogesic", regNo = "DR-153", lot = "ZZ99999"), tables)
+        val amber = verify(ScanInput("Biogesic", lot = "ZZ99999"), tables)  // no registration number
         assertEquals(VerdictLevel.RED, red.level)
         assertEquals(VerdictLevel.GREEN, green.level)
+        assertEquals(VerdictLevel.AMBER, amber.level)
 
         saveToHistory(context, "scan-1", red)
         saveToHistory(context, "scan-1", red)   // re-check of the same scan: replaced, not duplicated
         saveToHistory(context, "scan-2", green)
+        saveToHistory(context, "scan-3", amber)
 
         val entries = ScanHistoryRepository(context).loadEntries(forceRefresh = true).associateBy { it.id }
-        assertEquals(setOf("scan-1", "scan-2"), entries.keys)
+        assertEquals(setOf("scan-1", "scan-2", "scan-3"), entries.keys)
         assertEquals(ScanSafety.UNSAFE, entries.getValue("scan-1").safety)
         assertEquals(ScanSafety.SAFE, entries.getValue("scan-2").safety)
+        assertEquals(ScanSafety.UNVERIFIED, entries.getValue("scan-3").safety)
         val details = entries.getValue("scan-1").scanDetails
         assertTrue(details, details.startsWith("Matches an FDA counterfeit advisory (red)"))
         assertTrue(details, "Lot 23651568 is listed as counterfeit" in details)
