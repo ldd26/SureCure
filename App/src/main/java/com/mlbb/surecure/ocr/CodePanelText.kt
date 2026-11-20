@@ -64,20 +64,24 @@ object CodePanelText {
         var manufactured = date(values[Field.MFG].orEmpty(), endOfMonth = false)
         // Unlabelled dates count only when no date is labelled at all: a labelled date's own value
         // line also looks unlabelled.
+        val unlabelled = unlabelledCodes(clean, barcode)
         if (expiry == null && manufactured == null) {
-            val dates = unlabelledDates(clean)
-            when (dates.size) {
-                1 -> expiry = dates[0].first
-                // A pack always expires after it is made: the later date is the expiry.
-                2 -> {
-                    val (early, late) = dates.sortedBy { it.second }
+            // Group the dates by month; blister strips repeat the same code several times.
+            val groups = unlabelled.dates.groupBy { it.second.year to it.second.month }.values.toList()
+            when {
+                groups.size == 1 -> expiry = groups[0][0].first
+                // Two dates printed once each: a pack always expires after it is made.
+                groups.size == 2 && groups.all { it.size == 1 } -> {
+                    val (early, late) = groups.map { it[0] }.sortedBy { it.second }
                     expiry = late.first
                     manufactured = early.first
                 }
+                // Repeated panels with misreads: the date read most often, if it clearly leads.
+                else -> expiry = vote(unlabelled.dates) { it.second.year to it.second.month }?.first
             }
         }
         val lot = lot(values[Field.LOT].orEmpty())
-            ?: if (values[Field.LOT].isNullOrEmpty()) unlabelledLot(clean, barcode) else null
+            ?: if (values[Field.LOT].isNullOrEmpty()) vote(unlabelled.lots) { it } else null
         return CodePanelReading(barcode, lot, regNo, expiry, manufactured)
     }
 
@@ -282,12 +286,25 @@ object CodePanelText {
 
     /** The code printed after a LOT / BATCH / B.N. label. Kept as read; two different lots suggest neither. */
     private fun lot(texts: List<String>): String? {
-        val found = linkedSetOf<String>()
+        val found = mutableListOf<String>()
         for (text in texts) {
             val value = tokens(text).firstOrNull()?.trim('.', ',', ';', ':') ?: continue
             if (LOT_VALUE.matches(value) && value.any { it.isDigit() } && !hasLabel(value)) found += value
         }
-        return found.singleOrNull()
+        return vote(found) { it }
+    }
+
+    /**
+     * The value read most often, if it is read strictly more often than any other; null on a tie or
+     * with nothing read. One value read once is that value. Blister strips print their codes several
+     * times, so repeats outvote an occasional misread, while two different values read once each
+     * still suggest neither.
+     */
+    private fun <T, K> vote(items: List<T>, key: (T) -> K): T? {
+        val groups = items.groupBy(key).values.sortedByDescending { it.size }
+        if (groups.isEmpty()) return null
+        if (groups.size > 1 && groups[0].size == groups[1].size) return null
+        return groups[0][0]
     }
 
     // ------------------------------------------------------------------ dates
@@ -309,54 +326,86 @@ object CodePanelText {
      * neither is suggested. A date parsePrinted rejects on purpose (the ambiguous "03/15/2028") is
      * left for the user to type.
      */
-    private fun date(texts: List<String>, endOfMonth: Boolean): String? {
-        val found = texts.mapNotNull { dateIn(it, endOfMonth) }
-        return found.firstOrNull()?.takeIf { first -> found.all { it.second == first.second } }?.first
+    private fun date(texts: List<String>, endOfMonth: Boolean): String? =
+        vote(texts.mapNotNull { dateIn(it, endOfMonth) }) { it.second }?.first
+
+    /** A date token list, cleaned: "MAR 2O28 SRP" -> ["MAR", "2028", "SRP"], "NAY 2029" -> ["MAY", "2029"]. */
+    private fun dateParts(text: String): List<String> {
+        val parts = tokens(text)
+            .map { it.trim('.', ',', ';', ':') }
+            .flatMap { tokens(expandCompactDate(it)) }
+            .map(::cleanDateToken)
+            .filter { it.isNotEmpty() }
+        return parts.mapIndexed { i, p ->
+            // A misread month just before a year: "NAY 2029" and "MNY 22" are MAY.
+            val next = parts.getOrNull(i + 1)
+            if (next != null && YEAR.matches(next)) misreadMonth(p) ?: p else p
+        }
     }
 
-    /** A date token list, cleaned: "MAR 2O28 SRP" -> ["MAR", "2028", "SRP"]. */
-    private fun dateParts(text: String): List<String> = tokens(text)
-        .map { it.trim('.', ',', ';', ':') }
-        .flatMap { tokens(expandCompactDate(it)) }
-        .map(::cleanDateToken)
-        .filter { it.isNotEmpty() }
+    private val YEAR = Regex("""\d{2}|\d{4}""")
+
+    /** Words that look like a month one letter off but aren't ("SRP 25" is a price, not SEP 2025). */
+    private val NOT_MONTHS = setOf("SRP", "EXP", "MFG", "MFD", "LOT", "REG", "TAB", "CAP", "BOX", "PHP")
 
     /**
-     * Lines that are nothing but a date ("MAY 2030", "03/2028"), outside any label, with distinct
-     * dates only (compared by month, using the end of the month).
+     * The month a three-letter word is one letter away from, if exactly one ("NAY" -> "MAY",
+     * "MNY" -> "MAY", "0CT" via [monthName]); null for real months and anything else.
      */
-    private fun unlabelledDates(lines: List<String>): List<Pair<String, PackDate>> {
-        val found = mutableListOf<Pair<String, PackDate>>()
+    private fun misreadMonth(word: String): String? {
+        if (word.length != 3 || !word.all(Char::isLetter) || word in MONTHS || word in NOT_MONTHS) return null
+        val near = MONTHS.filter { m -> m.indices.count { m[it] != word[it] } == 1 }
+        return near.singleOrNull()
+    }
+
+    /** Every lot and date occurrence printed without a label (repeats kept, for voting). */
+    private class Unlabelled(val lots: List<String>, val dates: List<Pair<String, PackDate>>)
+
+    /**
+     * Codes printed without labels, on lines outside any label:
+     * - a line that is only a date ("MAY 2030", "03/2028");
+     * - a line that is only a lot-like code ("26075401");
+     * - a lot and a date on one line, either order ("26076601 MAY 2029", as on Neozep Forte strips).
+     */
+    private fun unlabelledCodes(lines: List<String>, barcode: String?): Unlabelled {
+        val lots = mutableListOf<String>()
+        val dates = mutableListOf<Pair<String, PackDate>>()
         for (raw in lines) {
             val line = raw.uppercase(Locale.ROOT)
             if (labelHits(line).isNotEmpty()) continue
-            val candidate = numericMonthYear(dateParts(line).joinToString(" "))
-            val date = PackDate.parsePrinted(candidate, endOfMonth = true) ?: continue
-            if (found.none { it.second.year == date.year && it.second.month == date.month }) found += candidate to date
+            val t = tokens(line).map { it.trim('.', ',', ';', ':') }.filter { it.isNotEmpty() }
+            if (t.isEmpty()) continue
+            wholeDate(t.joinToString(" "))?.let { dates += it; continue }
+            if (t.size == 1) {
+                if (lotLike(t[0], barcode)) lots += t[0]
+                continue
+            }
+            val lotFirst = wholeDate(t.drop(1).joinToString(" "))
+            if (lotFirst != null && lotLike(t[0], barcode)) {
+                lots += t[0]; dates += lotFirst; continue
+            }
+            val lotLast = wholeDate(t.dropLast(1).joinToString(" "))
+            if (lotLast != null && lotLike(t.last(), barcode)) {
+                lots += t.last(); dates += lotLast
+            }
         }
-        return found
+        return Unlabelled(lots, dates)
+    }
+
+    /** [text] as one whole date ("MAY 2029", "03/2028"), with its expiry reading, or null. */
+    private fun wholeDate(text: String): Pair<String, PackDate>? {
+        val candidate = numericMonthYear(dateParts(text).joinToString(" "))
+        return PackDate.parsePrinted(candidate, endOfMonth = true)?.let { candidate to it }
     }
 
     /**
-     * A lot printed without a label: a line holding one code with at least 4 digits that isn't the
-     * barcode, a date or a registration number. Suggested only if exactly one such line exists.
+     * A code that can be a lot: at least 4 digits, and not the barcode (or a 12- to 14-digit misread
+     * of one), a date or a registration number.
      */
-    private fun unlabelledLot(lines: List<String>, barcode: String?): String? {
-        val found = linkedSetOf<String>()
-        for (raw in lines) {
-            val line = raw.uppercase(Locale.ROOT)
-            val t = tokens(line)
-            if (t.size != 1 || labelHits(line).isNotEmpty()) continue
-            val value = t[0].trim('.', ',', ';', ':')
-            if (!LOT_VALUE.matches(value) || value.count { it.isDigit() } < 4) continue
-            // Barcodes (and 12- to 14-digit misreads of one), dates and registration numbers aren't lots.
-            if (value == barcode || (value.all { it.isDigit() } && value.length in 12..14)) continue
-            if (PackDate.parsePrinted(numericMonthYear(dateParts(value).joinToString(" ")), true) != null) continue
-            if (REG.containsMatchIn(value)) continue
-            found += value
-        }
-        return found.singleOrNull()
-    }
+    private fun lotLike(value: String, barcode: String?): Boolean =
+        LOT_VALUE.matches(value) && value.count { it.isDigit() } >= 4 &&
+            value != barcode && !(value.all { it.isDigit() } && value.length in 12..14) &&
+            wholeDate(value) == null && !REG.containsMatchIn(value)
 
     /** "MAR 2O28 SRP 25.00" -> "MAR 2028" with its parsed date, or null. */
     private fun dateIn(text: String, endOfMonth: Boolean): Pair<String, PackDate>? {
