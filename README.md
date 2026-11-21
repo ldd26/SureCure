@@ -98,7 +98,7 @@ flowchart LR
 | Verdict | When |
 |---|---|
 | 🔴 **Red** | The lot exactly matches an FDA counterfeit advisory for that product, or the codes belong to a different product |
-| 🟡 **Amber** | Something can't be verified: no or unknown registration number, unknown barcode, no lot, expired, the lot is one look-alike character (O/0, I/1, S/5…) from a listed lot, or the lot is listed for a different product |
+| 🟡 **Amber** | Something can't be verified: registration number blank (without ticking "no registration number") or unknown, unknown barcode, no lot, expired, the lot is one look-alike character (O/0, I/1, S/5…) from a listed lot, or the lot is listed for a different product |
 | 🟢 **Green** | No match with FDA counterfeit records |
 
 <details>
@@ -194,7 +194,7 @@ The out-of-scope guard decided the photo didn't look like one of the 20 trained 
 <details>
 <summary><b>Why amber when everything looks fine?</b></summary>
 <br />
-Amber means something couldn't be verified, most often a missing registration number. The reasons are always listed under the verdict.
+Amber means something couldn't be verified, most often a registration number left blank. If the pack prints none, tick "This pack has no registration number" and it isn't counted against the pack. The reasons are always listed under the verdict.
 </details>
 
 <details>
