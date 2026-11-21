@@ -554,8 +554,24 @@ private fun CodeStage(
         entry.copy(barcode = it)
     }
     field(ScanFlow.FIELD_LOT, entry.lot, "Lot / batch number", KeyboardType.Text) { entry.copy(lot = it) }
-    field(ScanFlow.FIELD_REG_NO, entry.regNo, "FDA registration number (optional, e.g. DR-XY12345)", KeyboardType.Text) {
-        entry.copy(regNo = it)
+    if (!entry.noRegNoPrinted) {
+        field(ScanFlow.FIELD_REG_NO, entry.regNo, "FDA registration number (e.g. DR-XY12345)", KeyboardType.Text) {
+            entry.copy(regNo = it)
+        }
+    }
+    // Some packs (often blister strips) print no registration number. Ticking this hides the field and
+    // the rules skip the registration check instead of giving amber for a blank number.
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Checkbox(
+            checked = entry.noRegNoPrinted,
+            onCheckedChange = { ticked ->
+                onEntryChange(
+                    entry.copy(noRegNoPrinted = ticked, regNo = if (ticked) "" else entry.regNo),
+                    ScanFlow.FIELD_REG_NO
+                )
+            }
+        )
+        Text("This pack has no registration number", style = MaterialTheme.typography.bodyMedium)
     }
     field(ScanFlow.FIELD_EXPIRY, entry.expiry, "Expiry date (e.g. MAR 2028)", KeyboardType.Text) {
         entry.copy(expiry = it)

@@ -76,6 +76,8 @@ object ScanFlow {
         val regNo: String = "",
         val expiry: String = "",
         val manufactured: String = "",
+        /** "This pack has no registration number" ticked: the registration field is ignored. */
+        val noRegNoPrinted: Boolean = false,
     )
 
     /** Field keys, shared by code-entry errors and fields pre-filled from the photo. */
@@ -96,7 +98,7 @@ object ScanFlow {
         val filled = mutableSetOf<String>()
         fun pick(key: String, current: String, suggested: String?): String =
             if (current.isBlank() && !suggested.isNullOrBlank()) suggested.also { filled += key } else current
-        val next = CodeEntry(
+        val next = entry.copy(
             barcode = pick(FIELD_BARCODE, entry.barcode, reading.barcode),
             lot = pick(FIELD_LOT, entry.lot, reading.lot),
             regNo = pick(FIELD_REG_NO, entry.regNo, reading.regNo),
@@ -138,9 +140,10 @@ object ScanFlow {
                 // amber "could not be read reliably", never a guess.
                 barcode = entry.barcode.filterNot { it.isWhitespace() }.takeIf { it.isNotEmpty() },
                 lot = entry.lot.trim().takeIf { it.isNotEmpty() },
-                regNo = entry.regNo.trim().takeIf { it.isNotEmpty() },
+                regNo = entry.regNo.trim().takeIf { it.isNotEmpty() && !entry.noRegNoPrinted },
                 mfgDate = mfg,
                 expDate = exp,
+                noRegNoPrinted = entry.noRegNoPrinted,
             )
         )
     }

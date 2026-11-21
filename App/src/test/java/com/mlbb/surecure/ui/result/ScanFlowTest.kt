@@ -295,6 +295,19 @@ class ScanFlowTest {
         assertEquals(ScanSafety.UNSAFE, ScanSafety.fromStored("SOMETHING_NEW", ""))
     }
 
+    @Test
+    fun noRegistrationBoxIgnoresTheFieldAndReachesTheRules() {
+        // Ticked: whatever is left in the field is ignored, and the flag reaches the rules engine.
+        val scan = scanFor("Biogesic", ScanFlow.CodeEntry(lot = "ZZ99999", regNo = "DR-153", noRegNoPrinted = true))
+        assertNull(scan.regNo)
+        assertTrue(scan.noRegNoPrinted)
+        val v = verify(scan, tables, PackDate(2026, 11, 21))
+        assertEquals(VerdictLevel.GREEN, v.level)
+        // Not ticked and blank: amber, as before.
+        val blank = scanFor("Biogesic", ScanFlow.CodeEntry(lot = "ZZ99999"))
+        assertEquals(VerdictLevel.AMBER, verify(blank, tables, PackDate(2026, 11, 21)).level)
+    }
+
     private fun scanFor(product: String, entry: ScanFlow.CodeEntry) =
         (ScanFlow.parse(product, entry) as ScanFlow.Parsed.Ok).scan
 }
