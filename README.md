@@ -9,7 +9,7 @@
 An offline Android screener for counterfeit over-the-counter medicines in the Philippines.
 
 <p>
-  <a href="https://github.com/ldd26/SureCure/releases/tag/v1.0-demo"><img alt="Release" src="https://img.shields.io/github/v/release/ldd26/SureCure?label=download&color=14AE5C&style=flat" /></a>
+  <a href="https://github.com/ldd26/SureCure/releases/tag/v1.0.4-test"><img alt="Release" src="https://img.shields.io/github/v/release/ldd26/SureCure?include_prereleases&label=download&color=14AE5C&style=flat" /></a>
   <img alt="Android 7.0+" src="https://img.shields.io/badge/Android-7.0%2B-3DDC84?logo=android&logoColor=white&style=flat" />
   <img alt="Works offline" src="https://img.shields.io/badge/internet-not%20required-02542D?style=flat" />
   <img alt="Kotlin" src="https://img.shields.io/badge/Kotlin-Jetpack%20Compose-7F52FF?logo=kotlin&logoColor=white&style=flat" />
@@ -39,14 +39,14 @@ An offline Android screener for counterfeit over-the-counter medicines in the Ph
 </td>
 <td>
 
-**[⬇ Download SureCure.apk](https://github.com/ldd26/SureCure/releases/download/v1.0-demo/SureCure.apk)** (about 108 MB, Wi-Fi recommended)<br />
-Older or Android Go phones: **[SureCure-older-phones.apk](https://github.com/ldd26/SureCure/releases/download/v1.0-demo/SureCure-older-phones.apk)**
+**[⬇ Download SureCure.apk](https://github.com/ldd26/SureCure/releases/download/v1.0.4-test/SureCure.apk)** (about 108 MB, Wi-Fi recommended)<br />
+Older or Android Go phones: **[SureCure-older-phones.apk](https://github.com/ldd26/SureCure/releases/download/v1.0.4-test/SureCure-older-phones.apk)**
 
 1. Open the downloaded file. If Android asks, allow your browser to **install unknown apps**.
 2. If a SureCure built elsewhere is already installed, uninstall it first.
 3. Open SureCure and tap the green camera button.
 
-Android 7.0 and newer · no account · works offline. [Release notes and checksums](https://github.com/ldd26/SureCure/releases/tag/v1.0-demo)
+Android 7.0 and newer · no account · works offline. [Release notes and checksums](https://github.com/ldd26/SureCure/releases/tag/v1.0.4-test)
 
 </td>
 </tr>
@@ -98,7 +98,7 @@ flowchart LR
 | Verdict | When |
 |---|---|
 | 🔴 **Red** | The lot exactly matches an FDA counterfeit advisory for that product, or the codes belong to a different product |
-| 🟡 **Amber** | Something can't be verified: no or unknown registration number, unknown barcode, no lot, expired, the lot is one look-alike character (O/0, I/1, S/5…) from a listed lot, or the lot is listed for a different product |
+| 🟡 **Amber** | Something can't be verified: registration number blank (without ticking "no registration number") or unknown, unknown barcode, no lot, expired, the lot is one look-alike character (O/0, I/1, S/5…) from a listed lot, or the lot is listed for a different product |
 | 🟢 **Green** | No match with FDA counterfeit records |
 
 <details>
@@ -194,7 +194,7 @@ The out-of-scope guard decided the photo didn't look like one of the 20 trained 
 <details>
 <summary><b>Why amber when everything looks fine?</b></summary>
 <br />
-Amber means something couldn't be verified, most often a missing registration number. The reasons are always listed under the verdict.
+Amber means something couldn't be verified, most often a registration number left blank. If the pack prints none, tick "This pack has no registration number" and it isn't counted against the pack. The reasons are always listed under the verdict.
 </details>
 
 <details>
