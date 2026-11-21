@@ -166,3 +166,41 @@ def test_counterfeit_lot_without_advisory_number_still_red(tables):
     tables.counterfeit_lots.append(CounterfeitLot("Bioflu", "U066300", "10/2023", ""))
     v = verify(ScanInput("Bioflu", lot="U066300"), tables, TODAY)
     assert v.level == RED and "an FDA counterfeit advisory" in v.reasons[0]
+
+
+# --- "This pack has no registration number" (the user ticked the box)
+def test_no_reg_printed_genuine_is_green_with_note(tables):
+    v = verify(genuine(reg_no=None, no_reg_printed=True), tables, TODAY)
+    assert v.level == GREEN
+    assert v.reasons == ["All checks passed.", "No registration number is printed on this pack, so it was not checked."]
+
+
+def test_no_reg_printed_listed_lot_still_red(tables):
+    v = verify(genuine(reg_no=None, no_reg_printed=True, lot="23651568"), tables, TODAY)
+    assert v.level == RED
+
+
+def test_no_reg_printed_without_lot_is_amber_for_the_lot_only(tables):
+    v = verify(genuine(reg_no=None, no_reg_printed=True, lot=None), tables, TODAY)
+    assert v.level == AMBER
+    assert "No lot number entered, so the counterfeit lot check could not run." in v.reasons
+    assert "No registration number entered." not in v.reasons
+
+
+def test_registration_of_other_product_still_red_with_box_unticked(tables):
+    v = verify(genuine(reg_no="DR-TEST-0002"), tables, TODAY)
+    assert v.level == RED and "belongs to Tempra" in v.reasons[0]
+
+
+def test_blank_registration_without_the_box_is_still_amber(tables):
+    v = verify(genuine(reg_no=None), tables, TODAY)
+    assert v.level == AMBER and v.reasons == ["No registration number entered."]
+
+
+def test_registration_for_product_without_any_on_file_is_not_amber(tables):
+    # Flanax has no registration in the fixture table: a typed number can't be checked, so no amber.
+    v = verify(genuine(stage1_product="Flanax", barcode=None, reg_no="DR-XY99999"), tables, TODAY)
+    assert v.level == GREEN
+    assert v.reasons == ["All checks passed.", "We have no FDA registration record for this product, so the registration number was not checked."]
+    # Biogesic has registrations: an unknown number is still amber.
+    assert verify(genuine(reg_no="DR-XY99999"), tables, TODAY).level == AMBER

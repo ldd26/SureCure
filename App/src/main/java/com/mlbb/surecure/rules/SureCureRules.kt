@@ -140,7 +140,15 @@ data class ScanInput(
     val mfgDate: PackDate? = null,
     val expDate: PackDate? = null,
     val frontPhotoUri: String? = null,
+    /** The user ticked "this pack has no registration number": a blank registration isn't amber. */
+    val noRegNoPrinted: Boolean = false,
 )
+
+/** Green-verdict note when the user said the pack prints no registration number. */
+const val NO_REG_PRINTED_NOTE = "No registration number is printed on this pack, so it was not checked."
+
+/** Green-verdict note when a registration number was entered for a product with no registration on file. */
+const val NO_RECORD_NOTE = "We have no FDA registration record for this product, so the registration number was not checked."
 
 data class Verdict(
     val level: VerdictLevel,
@@ -226,10 +234,17 @@ fun verify(scan: ScanInput, tables: FdaTables, today: PackDate = PackDate.today(
     }
 
     // Amber: missing or unknown codes
+    var noRecordForProduct = false
     if (!scan.regNo.given()) {
-        hit(VerdictLevel.AMBER, "No registration number entered.")
+        // Blank is amber unless the user said the pack prints no registration number.
+        if (!scan.noRegNoPrinted) hit(VerdictLevel.AMBER, "No registration number entered.")
     } else if (reg == null) {
-        hit(VerdictLevel.AMBER, "Registration number ${scan.regNo} is not in the FDA table.")
+        // A product with no registration in our table at all: we can't check the number, so it isn't amber.
+        if (product.given() && tables.registrations.values.none { it.product == product }) {
+            noRecordForProduct = true
+        } else {
+            hit(VerdictLevel.AMBER, "Registration number ${scan.regNo} is not in the FDA table.")
+        }
     }
     if (scan.barcode.given() && ean13Valid(scan.barcode) && bcProduct == null) {
         hit(VerdictLevel.AMBER, "Barcode ${scan.barcode} is not in the barcode table.")
@@ -259,7 +274,12 @@ fun verify(scan: ScanInput, tables: FdaTables, today: PackDate = PackDate.today(
         hit(VerdictLevel.AMBER, "Expiry date is not after the manufacturing date.")
     }
 
-    if (hits.isEmpty()) return Verdict(VerdictLevel.GREEN, listOf("All checks passed."), product)
+    if (hits.isEmpty()) {
+        val reasons = mutableListOf("All checks passed.")
+        if (!scan.regNo.given() && scan.noRegNoPrinted) reasons += NO_REG_PRINTED_NOTE
+        if (noRecordForProduct) reasons += NO_RECORD_NOTE
+        return Verdict(VerdictLevel.GREEN, reasons, product)
+    }
     val sorted = hits.sortedByDescending { it.first.ordinal }  // stable, like Python's sort
     return Verdict(sorted[0].first, sorted.map { it.second }, product, lotMatch, thumbnailUri = scan.frontPhotoUri)
 }

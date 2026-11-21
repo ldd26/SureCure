@@ -205,4 +205,50 @@ class SureCureRulesTest {
         val v = verify(ScanInput("Bioflu", lot = "U066300"), t, today)
         assertTrue(v.level == RED && "an FDA counterfeit advisory" in v.reasons[0])
     }
+
+    // --- "This pack has no registration number" (the user ticked the box)
+
+    @Test
+    fun noRegPrintedGenuineIsGreenWithNote() {
+        val v = verify(genuine(regNo = null).copy(noRegNoPrinted = true), tables(), today)
+        assertEquals(GREEN, v.level)
+        assertEquals(listOf("All checks passed.", NO_REG_PRINTED_NOTE), v.reasons)
+        assertEquals("No registration number is printed on this pack, so it was not checked.", NO_REG_PRINTED_NOTE)
+    }
+
+    @Test
+    fun noRegPrintedListedLotStillRed() {
+        val v = verify(genuine(regNo = null, lot = "23651568").copy(noRegNoPrinted = true), tables(), today)
+        assertEquals(RED, v.level)
+    }
+
+    @Test
+    fun noRegPrintedWithoutLotIsAmberForTheLotOnly() {
+        val v = verify(genuine(regNo = null, lot = null).copy(noRegNoPrinted = true), tables(), today)
+        assertEquals(AMBER, v.level)
+        assertTrue("No lot number entered, so the counterfeit lot check could not run." in v.reasons)
+        assertFalse("No registration number entered." in v.reasons)
+    }
+
+    @Test
+    fun registrationOfOtherProductStillRedWithBoxUnticked() {
+        val v = verify(genuine(regNo = "DR-TEST-0002"), tables(), today)
+        assertTrue(v.level == RED && "belongs to Tempra" in v.reasons[0])
+    }
+
+    @Test
+    fun blankRegistrationWithoutTheBoxIsStillAmber() {
+        val v = verify(genuine(regNo = null), tables(), today)
+        assertTrue(v.level == AMBER && v.reasons == listOf("No registration number entered."))
+    }
+
+    @Test
+    fun registrationForProductWithoutAnyOnFileIsNotAmber() {
+        // Flanax has no registration in the fixture table: a typed number can't be checked, so no amber.
+        val v = verify(genuine(stage1Product = "Flanax", barcode = null, regNo = "DR-XY99999"), tables(), today)
+        assertEquals(GREEN, v.level)
+        assertEquals(listOf("All checks passed.", NO_RECORD_NOTE), v.reasons)
+        // Biogesic has registrations: an unknown number is still amber.
+        assertEquals(AMBER, verify(genuine(regNo = "DR-XY99999"), tables(), today).level)
+    }
 }

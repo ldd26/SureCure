@@ -113,6 +113,13 @@ class ScanInput:
     reg_no: Optional[str] = None
     mfg_date: Optional[date] = None
     exp_date: Optional[date] = None
+    no_reg_printed: bool = False              # user ticked "this pack has no registration number"
+
+
+# Green-verdict note when the user said the pack prints no registration number.
+NO_REG_PRINTED_NOTE = "No registration number is printed on this pack, so it was not checked."
+# Green-verdict note when a registration number was entered for a product with no registration on file.
+NO_RECORD_NOTE = "We have no FDA registration record for this product, so the registration number was not checked."
 
 
 @dataclass
@@ -181,10 +188,17 @@ def verify(scan: ScanInput, tables: FdaTables, today: Optional[date] = None) -> 
                            f"Check that the product is right.")
 
     # Amber: missing or unknown codes
+    no_record_for_product = False
     if not scan.reg_no:
-        hit(AMBER, "No registration number entered.")
+        # Blank is amber unless the user said the pack prints no registration number.
+        if not scan.no_reg_printed:
+            hit(AMBER, "No registration number entered.")
     elif reg is None:
-        hit(AMBER, f"Registration number {scan.reg_no} is not in the FDA table.")
+        # A product with no registration in our table at all: we can't check the number, so it isn't amber.
+        if product and not any(r.product == product for r in tables.registrations.values()):
+            no_record_for_product = True
+        else:
+            hit(AMBER, f"Registration number {scan.reg_no} is not in the FDA table.")
     if scan.barcode and ean13_valid(scan.barcode) and bc_product is None:
         hit(AMBER, f"Barcode {scan.barcode} is not in the barcode table.")
     if not scan.lot:
@@ -202,7 +216,12 @@ def verify(scan: ScanInput, tables: FdaTables, today: Optional[date] = None) -> 
         hit(AMBER, "Expiry date is not after the manufacturing date.")
 
     if not hits:
-        return Verdict(GREEN, ["All checks passed."], product)
+        reasons = ["All checks passed."]
+        if not scan.reg_no and scan.no_reg_printed:
+            reasons.append(NO_REG_PRINTED_NOTE)
+        if no_record_for_product:
+            reasons.append(NO_RECORD_NOTE)
+        return Verdict(GREEN, reasons, product)
     hits.sort(key=lambda h: -_RANK[h[0]])
     level = hits[0][0]
     return Verdict(level, [r for _, r in hits], product)
