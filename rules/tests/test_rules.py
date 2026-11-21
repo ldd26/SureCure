@@ -195,3 +195,12 @@ def test_registration_of_other_product_still_red_with_box_unticked(tables):
 def test_blank_registration_without_the_box_is_still_amber(tables):
     v = verify(genuine(reg_no=None), tables, TODAY)
     assert v.level == AMBER and v.reasons == ["No registration number entered."]
+
+
+def test_registration_for_product_without_any_on_file_is_not_amber(tables):
+    # Flanax has no registration in the fixture table: a typed number can't be checked, so no amber.
+    v = verify(genuine(stage1_product="Flanax", barcode=None, reg_no="DR-XY99999"), tables, TODAY)
+    assert v.level == GREEN
+    assert v.reasons == ["All checks passed.", "We have no FDA registration record for this product, so the registration number was not checked."]
+    # Biogesic has registrations: an unknown number is still amber.
+    assert verify(genuine(reg_no="DR-XY99999"), tables, TODAY).level == AMBER

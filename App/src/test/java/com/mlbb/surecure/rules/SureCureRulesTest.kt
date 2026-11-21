@@ -241,4 +241,14 @@ class SureCureRulesTest {
         val v = verify(genuine(regNo = null), tables(), today)
         assertTrue(v.level == AMBER && v.reasons == listOf("No registration number entered."))
     }
+
+    @Test
+    fun registrationForProductWithoutAnyOnFileIsNotAmber() {
+        // Flanax has no registration in the fixture table: a typed number can't be checked, so no amber.
+        val v = verify(genuine(stage1Product = "Flanax", barcode = null, regNo = "DR-XY99999"), tables(), today)
+        assertEquals(GREEN, v.level)
+        assertEquals(listOf("All checks passed.", NO_RECORD_NOTE), v.reasons)
+        // Biogesic has registrations: an unknown number is still amber.
+        assertEquals(AMBER, verify(genuine(regNo = "DR-XY99999"), tables(), today).level)
+    }
 }
