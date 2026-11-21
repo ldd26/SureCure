@@ -9,7 +9,7 @@
 An offline Android screener for counterfeit over-the-counter medicines in the Philippines.
 
 <p>
-  <a href="https://github.com/ldd26/SureCure/releases/tag/v1.0.4-test"><img alt="Release" src="https://img.shields.io/github/v/release/ldd26/SureCure?include_prereleases&label=download&color=14AE5C&style=flat" /></a>
+  <a href="https://github.com/ldd26/SureCure/releases/tag/v1.0-demo"><img alt="Release" src="https://img.shields.io/github/v/release/ldd26/SureCure?label=download&color=14AE5C&style=flat" /></a>
   <img alt="Android 7.0+" src="https://img.shields.io/badge/Android-7.0%2B-3DDC84?logo=android&logoColor=white&style=flat" />
   <img alt="Works offline" src="https://img.shields.io/badge/internet-not%20required-02542D?style=flat" />
   <img alt="Kotlin" src="https://img.shields.io/badge/Kotlin-Jetpack%20Compose-7F52FF?logo=kotlin&logoColor=white&style=flat" />
@@ -39,14 +39,14 @@ An offline Android screener for counterfeit over-the-counter medicines in the Ph
 </td>
 <td>
 
-**[⬇ Download SureCure.apk](https://github.com/ldd26/SureCure/releases/download/v1.0.4-test/SureCure.apk)** (about 108 MB, Wi-Fi recommended)<br />
-Older or Android Go phones: **[SureCure-older-phones.apk](https://github.com/ldd26/SureCure/releases/download/v1.0.4-test/SureCure-older-phones.apk)**
+**[⬇ Download SureCure.apk](https://github.com/ldd26/SureCure/releases/download/v1.0-demo/SureCure.apk)** (about 108 MB, Wi-Fi recommended)<br />
+Older or Android Go phones: **[SureCure-older-phones.apk](https://github.com/ldd26/SureCure/releases/download/v1.0-demo/SureCure-older-phones.apk)**
 
 1. Open the downloaded file. If Android asks, allow your browser to **install unknown apps**.
 2. If a SureCure built elsewhere is already installed, uninstall it first.
 3. Open SureCure and tap the green camera button.
 
-Android 7.0 and newer · no account · works offline. [Release notes and checksums](https://github.com/ldd26/SureCure/releases/tag/v1.0.4-test)
+Android 7.0 and newer · no account · works offline. [Release notes and checksums](https://github.com/ldd26/SureCure/releases/tag/v1.0-demo)
 
 </td>
 </tr>
